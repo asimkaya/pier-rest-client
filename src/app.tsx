@@ -7,7 +7,7 @@ import { RequestBuilder } from "~/features/request-builder/request-builder";
 import { ResponseViewer } from "~/features/response-viewer/response-viewer";
 import { CommandPalette } from "~/features/command-palette/command-palette";
 import { useKeybindings } from "~/lib/keybindings";
-import { state } from "~/store/app-store";
+import { state, setTheme } from "~/store/app-store";
 import { loadCollections } from "~/features/collections/collection-store";
 import { loadEnvironments } from "~/features/environments/env-store";
 import { loadHistory } from "~/features/history/history-store";
@@ -19,6 +19,7 @@ const App: Component = () => {
   let isDragging = false;
 
   onMount(async () => {
+    setTheme(state.theme);
     await Promise.allSettled([loadCollections(), loadEnvironments(), loadHistory()]);
   });
 

@@ -16,7 +16,7 @@ export function Select(props: SelectProps) {
   return (
     <select
       class={cn(
-        "flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-default appearance-none",
+        "flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none",
         local.class
       )}
       onChange={(e) => local.onChange?.(e.currentTarget.value)}

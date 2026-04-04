@@ -38,7 +38,7 @@ const [state, setState] = createStore<AppState>({
   theme: "system",
 });
 
-export { state };
+export { state, setState };
 
 export function getActiveTab(): Tab | undefined {
   return state.tabs.find((t) => t.id === state.activeTabId);
@@ -160,8 +160,10 @@ export function setTheme(theme: ThemeMode) {
   setState("theme", theme);
   if (theme === "system") {
     document.documentElement.removeAttribute("data-theme");
+  } else if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
   } else {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", "light");
   }
 }
 

@@ -10,7 +10,7 @@ export function TabBar() {
           {(tab) => (
             <div
               class={cn(
-                "group flex h-9 min-w-[120px] max-w-[200px] cursor-default items-center gap-2 border-r px-3 text-xs transition-colors",
+                "group flex h-9 min-w-[120px] max-w-[200px] cursor-pointer items-center gap-2 border-r px-3 text-xs transition-colors",
                 state.activeTabId === tab.id
                   ? "bg-background text-foreground"
                   : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"

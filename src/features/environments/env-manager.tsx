@@ -5,10 +5,11 @@ import { Input } from "~/components/ui/input";
 import {
   createEnvironment,
   deleteEnvironment,
-  updateEnvironment,
+  updateEnvironmentVariable,
+  addVariableToEnvironment,
+  removeVariableFromEnvironment,
 } from "./env-store";
 import { cn } from "~/lib/utils";
-import type { EnvironmentVariable } from "~/lib/types";
 
 export function EnvironmentManager() {
   const [creating, setCreating] = createSignal(false);
@@ -21,33 +22,6 @@ export function EnvironmentManager() {
     await createEnvironment(name);
     setNewName("");
     setCreating(false);
-  }
-
-  function activeEnv() {
-    return state.environments.find((e) => e.id === editingId());
-  }
-
-  function updateVariable(idx: number, field: keyof EnvironmentVariable, val: string | boolean) {
-    const env = activeEnv();
-    if (!env) return;
-    const updated = [...env.variables];
-    updated[idx] = { ...updated[idx], [field]: val };
-    updateEnvironment(env.id, { variables: updated });
-  }
-
-  function addVariable() {
-    const env = activeEnv();
-    if (!env) return;
-    updateEnvironment(env.id, {
-      variables: [...env.variables, { key: "", value: "", enabled: true }],
-    });
-  }
-
-  function removeVariable(idx: number) {
-    const env = activeEnv();
-    if (!env) return;
-    const updated = env.variables.filter((_, i) => i !== idx);
-    updateEnvironment(env.id, { variables: updated });
   }
 
   return (
@@ -96,7 +70,7 @@ export function EnvironmentManager() {
             <div class="space-y-1">
               <div
                 class={cn(
-                  "group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs cursor-default",
+                  "group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs",
                   state.activeEnvironmentId === env.id
                     ? "bg-primary/10 text-primary"
                     : "hover:bg-accent text-foreground/80"
@@ -104,7 +78,7 @@ export function EnvironmentManager() {
               >
                 <button
                   class={cn(
-                    "h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-colors",
+                    "h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-colors cursor-pointer",
                     state.activeEnvironmentId === env.id
                       ? "border-primary bg-primary"
                       : "border-muted-foreground/40"
@@ -117,13 +91,13 @@ export function EnvironmentManager() {
                   aria-label={`Activate ${env.name}`}
                 />
                 <span
-                  class="flex-1 truncate cursor-default"
+                  class="flex-1 truncate cursor-pointer"
                   onClick={() => setEditingId(editingId() === env.id ? null : env.id)}
                 >
                   {env.name}
                 </span>
                 <button
-                  class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                  class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity cursor-pointer"
                   onClick={() => deleteEnvironment(env.id)}
                   aria-label="Delete"
                 >
@@ -142,24 +116,24 @@ export function EnvironmentManager() {
                         <input
                           type="checkbox"
                           checked={v.enabled}
-                          onChange={() => updateVariable(i(), "enabled", !v.enabled)}
-                          class="h-3 w-3 shrink-0 accent-primary"
+                          onChange={() => updateEnvironmentVariable(env.id, i(), "enabled", !v.enabled)}
+                          class="h-3 w-3 shrink-0 accent-primary cursor-pointer"
                         />
                         <Input
                           value={v.key}
-                          onInput={(e) => updateVariable(i(), "key", e.currentTarget.value)}
+                          onInput={(e) => updateEnvironmentVariable(env.id, i(), "key", e.currentTarget.value)}
                           placeholder="KEY"
                           class="h-6 flex-1 text-[10px] font-mono"
                         />
                         <Input
                           value={v.value}
-                          onInput={(e) => updateVariable(i(), "value", e.currentTarget.value)}
+                          onInput={(e) => updateEnvironmentVariable(env.id, i(), "value", e.currentTarget.value)}
                           placeholder="value"
                           class="h-6 flex-1 text-[10px] font-mono"
                         />
                         <button
-                          class="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeVariable(i())}
+                          class="text-muted-foreground hover:text-destructive cursor-pointer"
+                          onClick={() => removeVariableFromEnvironment(env.id, i())}
                         >
                           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
                             <line x1="2" y1="2" x2="10" y2="10" />
@@ -169,7 +143,7 @@ export function EnvironmentManager() {
                       </div>
                     )}
                   </For>
-                  <Button variant="ghost" size="sm" class="text-[10px] text-muted-foreground" onClick={addVariable}>
+                  <Button variant="ghost" size="sm" class="text-[10px] text-muted-foreground" onClick={() => addVariableToEnvironment(env.id)}>
                     + Add Variable
                   </Button>
                 </div>
