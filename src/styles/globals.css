@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - Neutral */
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #0a0a0c;
+  --color-card-foreground: #fafafa;
+  --color-popover: #0a0a0c;
+  --color-popover-foreground: #fafafa;
+  --color-muted: #1a1a1e;
+  --color-muted-foreground: #a1a1aa;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #6366f1;
+
+  /* Colors - Brand */
+  --color-primary: #6366f1;
+  --color-primary-foreground: #fafafa;
+  --color-secondary: #1e1e22;
+  --color-secondary-foreground: #fafafa;
+  --color-accent: #1e1e22;
+  --color-accent-foreground: #fafafa;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-info: #3b82f6;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Font */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Light theme overrides */
+@media (prefers-color-scheme: light) {
+  @theme {
+    --color-background: #ffffff;
+    --color-foreground: #09090b;
+    --color-card: #ffffff;
+    --color-card-foreground: #09090b;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #09090b;
+    --color-muted: #f4f4f5;
+    --color-muted-foreground: #71717a;
+    --color-border: #e4e4e7;
+    --color-input: #e4e4e7;
+    --color-secondary: #f4f4f5;
+    --color-secondary-foreground: #09090b;
+    --color-accent: #f4f4f5;
+    --color-accent-foreground: #09090b;
+  }
+}
+
+[data-theme="light"] {
+  --color-background: #ffffff;
+  --color-foreground: #09090b;
+  --color-card: #ffffff;
+  --color-card-foreground: #09090b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #09090b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-secondary: #f4f4f5;
+  --color-secondary-foreground: #09090b;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #09090b;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}

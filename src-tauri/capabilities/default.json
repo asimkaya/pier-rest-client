@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for Volt API Client",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "fs:default",
+    "fs:allow-app-write",
+    "fs:allow-app-read",
+    "fs:allow-appcache-write",
+    "fs:allow-appcache-read",
+    "fs:allow-appconfig-write",
+    "fs:allow-appconfig-read",
+    "fs:allow-appdata-write",
+    "fs:allow-appdata-read",
+    "fs:allow-applocaldata-write",
+    "fs:allow-applocaldata-read",
+    "fs:allow-applog-write",
+    "fs:allow-applog-read",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-write-file",
+    "shell:allow-open"
+  ]
+}
