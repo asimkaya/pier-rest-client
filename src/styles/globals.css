@@ -118,6 +118,18 @@ input, textarea {
   user-select: text;
 }
 
+/* Pointer-based drag handle (HTML5 DnD is flaky in Tauri WebView2) */
+.volt-dnd-grip {
+  touch-action: none;
+}
+
+/* Floating chip while moving a saved request (no keyframe loop — position updates every frame) */
+.volt-dnd-ghost {
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.2),
+    0 4px 6px -4px rgb(0 0 0 / 0.15);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -1,4 +1,5 @@
 import { For, Show, createSignal, onMount, onCleanup } from "solid-js";
+import { Portal } from "solid-js/web";
 import { state, openRequestInTab, retargetStandaloneSavedTabs } from "~/store/app-store";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -19,6 +20,18 @@ import { cn, getMethodColor, generateId } from "~/lib/utils";
 import type { SavedRequest } from "~/lib/types";
 import { createDefaultRequest } from "~/lib/types";
 
+/** Dev: `true` iken konsolda `[volt-dnd]` logları — sorun ayıklamadan sonra `false` yapın. */
+const VOLT_DND_DEBUG = false;
+
+function dndLog(phase: string, data?: Record<string, unknown>) {
+  if (!VOLT_DND_DEBUG) return;
+  if (data && Object.keys(data).length > 0) {
+    console.log("[volt-dnd]", phase, data);
+  } else {
+    console.log("[volt-dnd]", phase);
+  }
+}
+
 interface ContextMenu {
   x: number;
   y: number;
@@ -26,7 +39,57 @@ interface ContextMenu {
   folderId: string | null;
 }
 
-const DRAG_MIME = "application/vnd.volt.saved-request-id";
+/** Pointer-drag session: one signal so Solid reactivity updates ghost position every frame. */
+interface DragSession {
+  requestId: string;
+  x: number;
+  y: number;
+  /** Snapshot at drag start — do not use `state.savedRequests.find` in the ghost (store + nested component can miss subscription). */
+  method: string;
+  name: string;
+}
+
+/** Drag preview mounted on `document.body` (module-level component avoids nested-component + store lookup pitfalls). */
+function DndDragGhost(props: {
+  getSession: () => DragSession | null;
+  onGhostRef: (el: HTMLElement | null) => void;
+}) {
+  return (
+    <Show when={props.getSession()}>
+      {(getS) => (
+        <Portal mount={document.body}>
+          <div
+            ref={(el) => props.onGhostRef(el)}
+            class="volt-dnd-ghost pointer-events-none fixed left-0 top-0 z-[10060] max-w-[min(240px,calc(100vw-24px))] rounded-md border border-border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-lg will-change-transform"
+            style={{ transform: "translate(12px, 12px)" }}
+            aria-hidden="true"
+          >
+            <div class="flex items-center gap-2">
+              <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(getS().method))}>
+                {getS().method}
+              </span>
+              <span class="min-w-0 flex-1 truncate text-muted-foreground">{getS().name}</span>
+            </div>
+          </div>
+        </Portal>
+      )}
+    </Show>
+  );
+}
+
+/** data-volt-drop values: `c:<collectionId>` root, or `f:<collectionId>:<folderId>` */
+function parseDropAttr(v: string): { collectionId: string; folderId: string | null } | null {
+  if (v.startsWith("c:")) {
+    return { collectionId: v.slice(2), folderId: null };
+  }
+  if (v.startsWith("f:")) {
+    const rest = v.slice(2);
+    const idx = rest.indexOf(":");
+    if (idx === -1) return null;
+    return { collectionId: rest.slice(0, idx), folderId: rest.slice(idx + 1) };
+  }
+  return null;
+}
 
 export function CollectionTree() {
   const [newCollectionName, setNewCollectionName] = createSignal("");
@@ -35,7 +98,7 @@ export function CollectionTree() {
   const [contextMenu, setContextMenu] = createSignal<ContextMenu | null>(null);
   const [moveDialogRequest, setMoveDialogRequest] = createSignal<SavedRequest | null>(null);
   const [moveDialogSelectedKey, setMoveDialogSelectedKey] = createSignal<string | null>(null);
-  const [draggingId, setDraggingId] = createSignal<string | null>(null);
+  const [dragSession, setDragSession] = createSignal<DragSession | null>(null);
   const [dropHighlight, setDropHighlight] = createSignal<string | null>(null);
   const [landedRequestId, setLandedRequestId] = createSignal<string | null>(null);
   const [renamingRequestId, setRenamingRequestId] = createSignal<string | null>(null);
@@ -45,13 +108,57 @@ export function CollectionTree() {
   const [folderName, setFolderName] = createSignal("");
 
   let expandTimer: number | undefined;
-  let lastExpandCol: string | null = null;
+  /** `${collectionId}` or `${collectionId}/${folderId ?? ""}` — avoids skipping folder expand when same collection */
+  let lastAutoExpandKey: string | null = null;
+  /** HTML5 DnD is unreliable in WebView2; we use pointer capture on the grip instead. */
+  let activePointerDragRequestId: string | null = null;
+  /** Imperative ghost position — Solid + nested sidebar can fail to repaint fixed ghost every frame. */
+  let dragGhostEl: HTMLElement | undefined;
+  /** Debug: move event sırası (down’da sıfırlanır). */
+  let dndDebugMoveSeq = 0;
+  let dndDebugNoGhostSkipCount = 0;
+  let dndDebugSyncApplyCount = 0;
+
+  function syncGhostPosition(clientX: number, clientY: number) {
+    const el = dragGhostEl;
+    if (!el) {
+      if (VOLT_DND_DEBUG) {
+        dndDebugNoGhostSkipCount += 1;
+        if (dndDebugNoGhostSkipCount <= 6) {
+          dndLog("syncGhostPosition:no-el", { clientX, clientY, skip: dndDebugNoGhostSkipCount });
+        }
+      }
+      return;
+    }
+    el.style.left = `${clientX}px`;
+    el.style.top = `${clientY}px`;
+    if (VOLT_DND_DEBUG) {
+      dndDebugSyncApplyCount += 1;
+      if (dndDebugSyncApplyCount <= 5 || dndDebugSyncApplyCount % 45 === 0) {
+        const cs = window.getComputedStyle(el);
+        dndLog("syncGhostPosition:applied", {
+          n: dndDebugSyncApplyCount,
+          clientX,
+          clientY,
+          styleLeft: el.style.left,
+          styleTop: el.style.top,
+          computedLeft: cs.left,
+          computedTop: cs.top,
+          computedTransform: cs.transform,
+        });
+      }
+    }
+  }
 
   function clearDragDecorations() {
-    setDraggingId(null);
+    if (VOLT_DND_DEBUG) dndLog("clearDragDecorations");
+    activePointerDragRequestId = null;
+    dragGhostEl = undefined;
+    setDragSession(null);
     setDropHighlight(null);
-    lastExpandCol = null;
+    lastAutoExpandKey = null;
     window.clearTimeout(expandTimer);
+    document.body.style.removeProperty("cursor");
   }
 
   function toggleExpanded(id: string) {
@@ -202,13 +309,137 @@ export function CollectionTree() {
 
   onMount(() => {
     document.addEventListener("click", handleDocumentClick);
-    const onDragEnd = () => clearDragDecorations();
-    document.addEventListener("dragend", onDragEnd);
-    onCleanup(() => {
-      document.removeEventListener("click", handleDocumentClick);
-      document.removeEventListener("dragend", onDragEnd);
-    });
+    onCleanup(() => document.removeEventListener("click", handleDocumentClick));
   });
+
+  function resolveDropTargetFromPoint(clientX: number, clientY: number) {
+    const stack = document.elementsFromPoint(clientX, clientY);
+    for (const node of stack) {
+      if (!(node instanceof Element)) continue;
+      const zone = node.closest("[data-volt-drop]");
+      if (!(zone instanceof HTMLElement)) continue;
+      const v = zone.getAttribute("data-volt-drop");
+      if (!v) continue;
+      const parsed = parseDropAttr(v);
+      if (parsed) return { raw: v, ...parsed };
+    }
+    return null;
+  }
+
+  function onGripPointerDown(e: PointerEvent, req: SavedRequest) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dndDebugMoveSeq = 0;
+    dndDebugNoGhostSkipCount = 0;
+    dndDebugSyncApplyCount = 0;
+    activePointerDragRequestId = req.id;
+    setDragSession({
+      requestId: req.id,
+      x: e.clientX,
+      y: e.clientY,
+      method: req.method,
+      name: req.name,
+    });
+    setDropHighlight(null);
+    lastAutoExpandKey = null;
+    window.clearTimeout(expandTimer);
+    document.body.style.cursor = "grabbing";
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    if (VOLT_DND_DEBUG) {
+      let hasCapture = false;
+      try {
+        hasCapture = target.hasPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      dndLog("pointerdown", {
+        requestId: req.id,
+        pointerId: e.pointerId,
+        pointerType: e.pointerType,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        hasPointerCapture: hasCapture,
+        tag: target.tagName,
+        className: typeof target.className === "string" ? target.className : "",
+      });
+    }
+    queueMicrotask(() => {
+      if (VOLT_DND_DEBUG) {
+        dndLog("microtask:after-down", {
+          dragGhostEl: !!dragGhostEl,
+          activeId: activePointerDragRequestId,
+        });
+      }
+      syncGhostPosition(e.clientX, e.clientY);
+    });
+  }
+
+  function onGripPointerMove(e: PointerEvent) {
+    if (activePointerDragRequestId == null) return;
+    dndDebugMoveSeq += 1;
+    if (VOLT_DND_DEBUG && (dndDebugMoveSeq <= 6 || dndDebugMoveSeq % 35 === 0)) {
+      dndLog("pointermove", {
+        seq: dndDebugMoveSeq,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        pointerId: e.pointerId,
+        hasGhostRef: !!dragGhostEl,
+        type: e.pointerType,
+      });
+    }
+    setDragSession((prev) =>
+      prev ? { ...prev, x: e.clientX, y: e.clientY } : prev
+    );
+    syncGhostPosition(e.clientX, e.clientY);
+    const hit = resolveDropTargetFromPoint(e.clientX, e.clientY);
+    setDropHighlight(hit?.raw ?? null);
+
+    const col = hit?.collectionId;
+    if (!col) {
+      lastAutoExpandKey = null;
+      return;
+    }
+    const expandKey = `${col}/${hit.folderId ?? ""}`;
+    if (expandKey !== lastAutoExpandKey) {
+      lastAutoExpandKey = expandKey;
+      window.clearTimeout(expandTimer);
+      expandTimer = window.setTimeout(() => {
+        ensureExpanded(col);
+        const fid = hit.folderId;
+        if (fid) ensureExpanded(fid);
+      }, 200);
+    }
+  }
+
+  function onGripPointerUp(e: PointerEvent) {
+    if (activePointerDragRequestId == null) return;
+    const reqId = activePointerDragRequestId;
+    if (VOLT_DND_DEBUG) {
+      dndLog("pointerup", {
+        seq: dndDebugMoveSeq,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        pointerId: e.pointerId,
+      });
+    }
+    activePointerDragRequestId = null;
+
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+
+    const hit = resolveDropTargetFromPoint(e.clientX, e.clientY);
+    const req = state.savedRequests.find((r) => r.id === reqId);
+    if (req && hit) {
+      void moveStandaloneToCollection(req, hit.collectionId, hit.folderId);
+    } else {
+      clearDragDecorations();
+    }
+  }
 
   function renderRenameInput(req: SavedRequest) {
     return (
@@ -268,67 +499,22 @@ export function CollectionTree() {
     );
   }
 
-  async function handleDropToTarget(e: DragEvent, collectionId: string, folderId: string | null) {
-    e.preventDefault();
-    const id = e.dataTransfer?.getData(DRAG_MIME) ?? "";
-    clearDragDecorations();
-    if (!id) return;
-    const req = state.savedRequests.find((r) => r.id === id);
-    if (!req) return;
-    await moveStandaloneToCollection(req, collectionId, folderId);
-  }
-
-  function onCollectionDragOver(e: DragEvent, collectionId: string) {
-    e.preventDefault();
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    dt.dropEffect = "move";
-    setDropHighlight(`c:${collectionId}`);
-    if (lastExpandCol !== collectionId) {
-      lastExpandCol = collectionId;
-      window.clearTimeout(expandTimer);
-      expandTimer = window.setTimeout(() => ensureExpanded(collectionId), 200);
-    }
-  }
-
-  function onFolderDragOver(e: DragEvent, collectionId: string, folderId: string) {
-    e.preventDefault();
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    dt.dropEffect = "move";
-    setDropHighlight(`f:${collectionId}:${folderId}`);
-    if (lastExpandCol !== collectionId) {
-      lastExpandCol = collectionId;
-      window.clearTimeout(expandTimer);
-      expandTimer = window.setTimeout(() => {
-        ensureExpanded(collectionId);
-        ensureExpanded(folderId);
-      }, 200);
-    }
-  }
-
   function renderStandaloneRequest(req: SavedRequest) {
     if (renamingRequestId() === req.id) return renderRenameInput(req);
 
     return (
       <div
         class={cn(
-          "group/req flex items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-accent",
-          draggingId() === req.id && "opacity-45"
+          "group/req flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-opacity hover:bg-accent",
+          dragSession()?.requestId === req.id && "opacity-50"
         )}
       >
         <div
-          class="shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            const dt = e.dataTransfer;
-            if (!dt) return;
-            dt.setData(DRAG_MIME, req.id);
-            dt.effectAllowed = "move";
-            setDraggingId(req.id);
-          }}
-          onDragEnd={() => clearDragDecorations()}
+          class="volt-dnd-grip shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
+          onPointerDown={(e) => onGripPointerDown(e, req)}
+          onPointerMove={onGripPointerMove}
+          onPointerUp={onGripPointerUp}
+          onPointerCancel={onGripPointerUp}
           aria-label="Drag into a collection or folder"
         >
           <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden="true">
@@ -526,15 +712,9 @@ export function CollectionTree() {
                   dropHighlight() === `c:${collection.id}` &&
                     "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                 )}
+                data-volt-drop={`c:${collection.id}`}
                 onClick={() => toggleExpanded(collection.id)}
                 onContextMenu={(e) => handleContextMenu(e, collection.id)}
-                onDragOver={(e) => onCollectionDragOver(e, collection.id)}
-                onDragLeave={(e) => {
-                  const next = e.relatedTarget as Node | null;
-                  if (next && (e.currentTarget as HTMLElement).contains(next)) return;
-                  setDropHighlight((h) => (h === `c:${collection.id}` ? null : h));
-                }}
-                onDrop={(e) => void handleDropToTarget(e, collection.id, null)}
               >
                 <svg
                   width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -588,15 +768,9 @@ export function CollectionTree() {
                             dropHighlight() === `f:${collection.id}:${folder.id}` &&
                               "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                           )}
+                          data-volt-drop={`f:${collection.id}:${folder.id}`}
                           onClick={() => toggleExpanded(folder.id)}
                           onContextMenu={(e) => handleContextMenu(e, collection.id, folder.id)}
-                          onDragOver={(e) => onFolderDragOver(e, collection.id, folder.id)}
-                          onDragLeave={(e) => {
-                            const next = e.relatedTarget as Node | null;
-                            if (next && (e.currentTarget as HTMLElement).contains(next)) return;
-                            setDropHighlight((h) => (h === `f:${collection.id}:${folder.id}` ? null : h));
-                          }}
-                          onDrop={(e) => void handleDropToTarget(e, collection.id, folder.id)}
                         >
                           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
                             class={cn("shrink-0 transition-transform", expandedIds().has(folder.id) && "rotate-90")}
@@ -791,6 +965,23 @@ export function CollectionTree() {
           );
         }}
       </Show>
+
+      <DndDragGhost
+        getSession={dragSession}
+        onGhostRef={(el) => {
+          dragGhostEl = el ?? undefined;
+          if (VOLT_DND_DEBUG) {
+            if (el) {
+              dndLog("ghost-ref:mount", {
+                inBody: document.body.contains(el),
+                rect: el.getBoundingClientRect(),
+              });
+            } else {
+              dndLog("ghost-ref:unmount");
+            }
+          }
+        }}
+      />
     </div>
   );
 }
