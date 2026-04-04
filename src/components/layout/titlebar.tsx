@@ -1,12 +1,10 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount, onCleanup } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { EnvironmentSelector } from "~/features/environments/env-selector";
 
 export function Titlebar() {
   const [isMaximized, setIsMaximized] = createSignal(false);
   const appWindow = getCurrentWindow();
-  let dblClickTimer: ReturnType<typeof setTimeout> | null = null;
-  let pendingDrag = false;
 
   async function checkMaximized() {
     try {
@@ -16,35 +14,15 @@ export function Titlebar() {
     }
   }
 
-  appWindow.onResized(() => checkMaximized());
-  checkMaximized();
-
-  function isInteractive(e: MouseEvent) {
-    return !!(e.target as HTMLElement).closest("button, [data-no-drag]");
-  }
-
-  function handleMouseDown(e: MouseEvent) {
-    if (isInteractive(e)) return;
-    if (e.detail >= 2) return;
-    pendingDrag = true;
-
-    dblClickTimer = setTimeout(() => {
-      if (pendingDrag) {
-        pendingDrag = false;
-        appWindow.startDragging();
-      }
-    }, 150);
-  }
-
-  async function handleDoubleClick(e: MouseEvent) {
-    if (isInteractive(e)) return;
-    pendingDrag = false;
-    if (dblClickTimer) {
-      clearTimeout(dblClickTimer);
-      dblClickTimer = null;
-    }
-    await appWindow.toggleMaximize();
-  }
+  onMount(() => {
+    void checkMaximized();
+    const unlistenPromise = appWindow.onResized(() => {
+      void checkMaximized();
+    });
+    onCleanup(() => {
+      void unlistenPromise.then((unlisten) => unlisten());
+    });
+  });
 
   function openCommandPalette() {
     document.dispatchEvent(
@@ -53,12 +31,8 @@ export function Titlebar() {
   }
 
   return (
-    <div
-      class="flex h-9 shrink-0 items-center justify-between border-b bg-background select-none"
-      onMouseDown={handleMouseDown}
-      onDblClick={handleDoubleClick}
-    >
-      <div class="flex items-center gap-2 pl-3">
+    <div class="flex h-9 shrink-0 items-center border-b bg-background select-none">
+      <div class="flex min-h-9 min-w-0 flex-1 items-center gap-2 pl-3" data-tauri-drag-region>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-primary">
           <path
             d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
@@ -73,9 +47,10 @@ export function Titlebar() {
         </span>
       </div>
 
-      <div class="flex items-center gap-2" data-no-drag>
+      <div class="flex shrink-0 items-center gap-2" data-tauri-drag-region-exclude>
         <EnvironmentSelector />
         <button
+          type="button"
           class="hidden sm:inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           onClick={openCommandPalette}
           title="Command Palette (Ctrl+K)"
@@ -88,8 +63,9 @@ export function Titlebar() {
         </button>
       </div>
 
-      <div class="flex h-full">
+      <div class="flex h-full shrink-0" data-tauri-drag-region-exclude>
         <button
+          type="button"
           class="inline-flex h-full w-11 items-center justify-center text-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
           onClick={() => appWindow.minimize()}
           aria-label="Minimize"
@@ -99,6 +75,7 @@ export function Titlebar() {
           </svg>
         </button>
         <button
+          type="button"
           class="inline-flex h-full w-11 items-center justify-center text-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
           onClick={() => appWindow.toggleMaximize()}
           aria-label={isMaximized() ? "Restore" : "Maximize"}
@@ -115,6 +92,7 @@ export function Titlebar() {
           )}
         </button>
         <button
+          type="button"
           class="inline-flex h-full w-11 items-center justify-center text-foreground/60 hover:bg-destructive hover:text-white transition-colors"
           onClick={() => appWindow.close()}
           aria-label="Close"

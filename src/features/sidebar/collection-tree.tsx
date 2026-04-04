@@ -288,7 +288,15 @@ export function CollectionTree() {
         <div class="mb-2 rounded-md border bg-card p-2 space-y-2 animate-scale-in">
           <p class="text-[10px] text-muted-foreground">New folder</p>
           <Input
-            autofocus
+            ref={(el) =>
+              queueMicrotask(() => {
+                try {
+                  el.focus({ preventScroll: true });
+                } catch {
+                  /* ignore */
+                }
+              })
+            }
             value={folderName()}
             onInput={(e) => setFolderName(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -330,7 +338,15 @@ export function CollectionTree() {
       <Show when={creating()}>
         <div class="flex gap-1 mb-2">
           <Input
-            autofocus
+            ref={(el) =>
+              queueMicrotask(() => {
+                try {
+                  el.focus({ preventScroll: true });
+                } catch {
+                  /* ignore */
+                }
+              })
+            }
             value={newCollectionName()}
             onInput={(e) => setNewCollectionName(e.currentTarget.value)}
             onKeyDown={(e) => {

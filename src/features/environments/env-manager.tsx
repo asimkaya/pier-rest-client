@@ -29,7 +29,15 @@ export function EnvironmentManager() {
       <Show when={creating()}>
         <div class="flex gap-1 mb-2">
           <Input
-            autofocus
+            ref={(el) =>
+              queueMicrotask(() => {
+                try {
+                  el.focus({ preventScroll: true });
+                } catch {
+                  /* ignore */
+                }
+              })
+            }
             value={newName()}
             onInput={(e) => setNewName(e.currentTarget.value)}
             onKeyDown={(e) => {
