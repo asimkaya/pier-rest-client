@@ -24,7 +24,7 @@ export function Sidebar() {
               <button
                 type="button"
                 class={cn(
-                  "flex h-7 w-full min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors",
+                  "flex h-7 w-full min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all duration-200 ease-out",
                   state.sidebarView === item.id
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -52,15 +52,21 @@ export function Sidebar() {
 
       <div class="flex-1 overflow-y-auto p-2">
         <Show when={state.sidebarView === "collections"}>
-          <CollectionTree />
+          <div class="volt-tab-panel-in">
+            <CollectionTree />
+          </div>
         </Show>
 
         <Show when={state.sidebarView === "history"}>
-          <HistoryPanel />
+          <div class="volt-tab-panel-in">
+            <HistoryPanel />
+          </div>
         </Show>
 
         <Show when={state.sidebarView === "environments"}>
-          <EnvironmentManager />
+          <div class="volt-tab-panel-in">
+            <EnvironmentManager />
+          </div>
         </Show>
       </div>
 

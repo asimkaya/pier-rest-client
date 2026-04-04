@@ -204,6 +204,21 @@ input, textarea {
   animation: volt-drop-pulse 0.55s ease-out;
 }
 
+@keyframes volt-tab-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.volt-tab-panel-in {
+  animation: volt-tab-panel-in 0.22s ease-out;
+}
+
 ::selection {
   background-color: var(--color-primary);
   color: white;

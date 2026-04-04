@@ -131,10 +131,31 @@ export function setTabDirty(id: string, dirty: boolean) {
   );
 }
 
+function savedLocationEquals(a: SavedLocation | undefined, b: SavedLocation | undefined): boolean {
+  if (!a || !b) return false;
+  if (a.type !== b.type) return false;
+  if (a.type === "standalone") return a.requestId === b.requestId;
+  return (
+    a.collectionId === b.collectionId &&
+    (a.folderId ?? "") === (b.folderId ?? "") &&
+    a.requestId === b.requestId
+  );
+}
+
 export function openRequestInTab(config: RequestConfig, name: string, savedLocation?: SavedLocation) {
-  const id = generateId();
+  let returnId = "";
   setState(
     produce((s) => {
+      if (savedLocation) {
+        const existing = s.tabs.find((t) => savedLocationEquals(t.savedLocation, savedLocation));
+        if (existing) {
+          s.activeTabId = existing.id;
+          returnId = existing.id;
+          return;
+        }
+      }
+      const id = generateId();
+      returnId = id;
       s.tabs.push({
         id,
         name,
@@ -147,7 +168,7 @@ export function openRequestInTab(config: RequestConfig, name: string, savedLocat
       s.activeTabId = id;
     })
   );
-  return id;
+  return returnId;
 }
 
 export function setTabSavedLocation(tabId: string, location: SavedLocation) {

@@ -7,7 +7,7 @@ import { RequestBuilder } from "~/features/request-builder/request-builder";
 import { ResponseViewer } from "~/features/response-viewer/response-viewer";
 import { CommandPalette } from "~/features/command-palette/command-palette";
 import { useKeybindings } from "~/lib/keybindings";
-import { state, setTheme, addTab } from "~/store/app-store";
+import { state, setTheme, addTab, setSidebarWidth } from "~/store/app-store";
 import { loadCollections } from "~/features/collections/collection-store";
 import { loadEnvironments } from "~/features/environments/env-store";
 import { loadHistory } from "~/features/history/history-store";
@@ -17,7 +17,9 @@ const App: Component = () => {
   useKeybindings();
   const [panelRatio, setPanelRatio] = createSignal(50);
   let containerRef: HTMLDivElement | undefined;
+  let mainLayoutRef: HTMLDivElement | undefined;
   let isDragging = false;
+  let isDraggingSidebar = false;
 
   onMount(async () => {
     setTheme(state.theme);
@@ -45,16 +47,40 @@ const App: Component = () => {
     document.addEventListener("mouseup", onUp);
   }
 
+  function handleSidebarSplitterDown(e: MouseEvent) {
+    isDraggingSidebar = true;
+    e.preventDefault();
+    function onMove(ev: MouseEvent) {
+      if (!isDraggingSidebar || !mainLayoutRef) return;
+      const left = mainLayoutRef.getBoundingClientRect().left;
+      setSidebarWidth(ev.clientX - left);
+    }
+    function onUp() {
+      isDraggingSidebar = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
   return (
     <div class="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <Titlebar />
 
-      <div class="flex flex-1 overflow-hidden">
+      <div ref={(el) => (mainLayoutRef = el ?? undefined)} class="flex min-h-0 flex-1 overflow-hidden">
         <div style={{ width: `${state.sidebarWidth}px` }} class="shrink-0 overflow-hidden">
           <Sidebar />
         </div>
 
-        <div class="flex flex-1 flex-col overflow-hidden">
+        <div
+          class="flex w-1 shrink-0 cursor-col-resize items-center justify-center transition-colors hover:bg-primary/20 active:bg-primary/30"
+          onMouseDown={handleSidebarSplitterDown}
+        >
+          <div class="h-8 w-0.5 rounded-full bg-border" />
+        </div>
+
+        <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
           <TabBar />
 
           <Show

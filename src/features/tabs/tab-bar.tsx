@@ -35,9 +35,9 @@ export function TabBar() {
           {(tab) => (
             <div
               class={cn(
-                "group flex h-9 min-w-[120px] max-w-[200px] cursor-pointer items-center gap-2 border-r px-3 text-xs transition-colors",
+                "group relative flex h-9 min-w-[120px] max-w-[200px] cursor-pointer items-center gap-2 border-r px-3 text-xs transition-colors duration-200 ease-out",
                 state.activeTabId === tab.id
-                  ? "bg-background text-foreground"
+                  ? "bg-muted/95 text-foreground shadow-[inset_0_-2px_0_0_var(--color-primary)]"
                   : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
               onClick={() => setActiveTab(tab.id)}

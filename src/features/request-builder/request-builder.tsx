@@ -72,7 +72,6 @@ export function RequestBuilder() {
 
   return (
     <div class="flex h-full flex-col">
-      {/* URL Bar */}
       <div class="flex items-center gap-2 border-b p-2">
         <div class="relative">
           <button
@@ -138,12 +137,12 @@ export function RequestBuilder() {
         </Button>
       </div>
 
-      {/* Section Tabs */}
       <div class="flex items-center border-b px-2">
         {sections.map((s) => (
           <button
+            type="button"
             class={cn(
-              "relative px-3 py-2 text-xs font-medium transition-colors",
+              "relative px-3 py-2 text-xs font-medium transition-colors duration-200 ease-out",
               activeSection() === s.id
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -164,28 +163,31 @@ export function RequestBuilder() {
         ))}
       </div>
 
-      {/* Section Content */}
       <div class="flex-1 overflow-y-auto p-2">
         <Show when={activeSection() === "params"}>
-          <KeyValueEditor
-            items={tab()?.request.queryParams ?? []}
-            onChange={(items: KeyValue[]) => updateRequest({ queryParams: items })}
-            keyPlaceholder="Parameter"
-            valuePlaceholder="Value"
-          />
+          <div class="volt-tab-panel-in">
+            <KeyValueEditor
+              items={tab()?.request.queryParams ?? []}
+              onChange={(items: KeyValue[]) => updateRequest({ queryParams: items })}
+              keyPlaceholder="Parameter"
+              valuePlaceholder="Value"
+            />
+          </div>
         </Show>
 
         <Show when={activeSection() === "headers"}>
-          <KeyValueEditor
-            items={tab()?.request.headers ?? []}
-            onChange={(items: KeyValue[]) => updateRequest({ headers: items })}
-            keyPlaceholder="Header"
-            valuePlaceholder="Value"
-          />
+          <div class="volt-tab-panel-in">
+            <KeyValueEditor
+              items={tab()?.request.headers ?? []}
+              onChange={(items: KeyValue[]) => updateRequest({ headers: items })}
+              keyPlaceholder="Header"
+              valuePlaceholder="Value"
+            />
+          </div>
         </Show>
 
         <Show when={activeSection() === "body"}>
-          <div class="space-y-2">
+          <div class="volt-tab-panel-in space-y-2">
             <div class="flex gap-1">
               {BODY_TYPES.map((bt) => (
                 <button
@@ -240,15 +242,17 @@ export function RequestBuilder() {
         </Show>
 
         <Show when={activeSection() === "auth"}>
-          <AuthEditor
-            auth={tab()?.request.auth ?? {
-              type: "none",
-              bearer: { token: "" },
-              basic: { username: "", password: "" },
-              apiKey: { key: "", value: "", location: "header" },
-            }}
-            onChange={(auth: AuthConfig) => updateRequest({ auth })}
-          />
+          <div class="volt-tab-panel-in">
+            <AuthEditor
+              auth={tab()?.request.auth ?? {
+                type: "none",
+                bearer: { token: "" },
+                basic: { username: "", password: "" },
+                apiKey: { key: "", value: "", location: "header" },
+              }}
+              onChange={(auth: AuthConfig) => updateRequest({ auth })}
+            />
+          </div>
         </Show>
       </div>
     </div>

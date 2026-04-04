@@ -82,8 +82,9 @@ export function ResponseViewer() {
         {/* Response Tabs */}
         <div class="flex items-center border-b px-2">
           <button
+            type="button"
             class={cn(
-              "relative px-3 py-2 text-xs font-medium transition-colors",
+              "relative px-3 py-2 text-xs font-medium transition-colors duration-200 ease-out",
               activeTab() === "body" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setActiveTab("body")}
@@ -92,8 +93,9 @@ export function ResponseViewer() {
             {activeTab() === "body" && <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
           </button>
           <button
+            type="button"
             class={cn(
-              "relative px-3 py-2 text-xs font-medium transition-colors",
+              "relative px-3 py-2 text-xs font-medium transition-colors duration-200 ease-out",
               activeTab() === "headers" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setActiveTab("headers")}
@@ -108,8 +110,9 @@ export function ResponseViewer() {
           <Show when={activeTab() === "body"}>
             <div class="ml-auto flex gap-0.5">
               <button
+                type="button"
                 class={cn(
-                  "rounded px-2 py-1 text-[10px] font-medium transition-colors",
+                  "rounded px-2 py-1 text-[10px] font-medium transition-colors duration-200 ease-out",
                   bodyView() === "pretty" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => setBodyView("pretty")}
@@ -117,8 +120,9 @@ export function ResponseViewer() {
                 Pretty
               </button>
               <button
+                type="button"
                 class={cn(
-                  "rounded px-2 py-1 text-[10px] font-medium transition-colors",
+                  "rounded px-2 py-1 text-[10px] font-medium transition-colors duration-200 ease-out",
                   bodyView() === "raw" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => setBodyView("raw")}
@@ -129,16 +133,15 @@ export function ResponseViewer() {
           </Show>
         </div>
 
-        {/* Response Content */}
         <div class="flex-1 overflow-auto">
           <Show when={activeTab() === "body"}>
-            <pre class="p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
+            <pre class="volt-tab-panel-in p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
               {bodyView() === "pretty" ? prettyJson() : response()!.body}
             </pre>
           </Show>
 
           <Show when={activeTab() === "headers"}>
-            <div class="p-2">
+            <div class="volt-tab-panel-in p-2">
               <table class="w-full text-xs">
                 <thead>
                   <tr class="border-b text-left text-muted-foreground">

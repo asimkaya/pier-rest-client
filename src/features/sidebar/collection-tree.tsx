@@ -20,18 +20,6 @@ import { cn, getMethodColor, generateId } from "~/lib/utils";
 import type { SavedRequest } from "~/lib/types";
 import { createDefaultRequest } from "~/lib/types";
 
-/** Dev: `true` iken konsolda `[volt-dnd]` logları — sorun ayıklamadan sonra `false` yapın. */
-const VOLT_DND_DEBUG = false;
-
-function dndLog(phase: string, data?: Record<string, unknown>) {
-  if (!VOLT_DND_DEBUG) return;
-  if (data && Object.keys(data).length > 0) {
-    console.log("[volt-dnd]", phase, data);
-  } else {
-    console.log("[volt-dnd]", phase);
-  }
-}
-
 interface ContextMenu {
   x: number;
   y: number;
@@ -39,17 +27,14 @@ interface ContextMenu {
   folderId: string | null;
 }
 
-/** Pointer-drag session: one signal so Solid reactivity updates ghost position every frame. */
 interface DragSession {
   requestId: string;
   x: number;
   y: number;
-  /** Snapshot at drag start — do not use `state.savedRequests.find` in the ghost (store + nested component can miss subscription). */
   method: string;
   name: string;
 }
 
-/** Drag preview mounted on `document.body` (module-level component avoids nested-component + store lookup pitfalls). */
 function DndDragGhost(props: {
   getSession: () => DragSession | null;
   onGhostRef: (el: HTMLElement | null) => void;
@@ -77,7 +62,6 @@ function DndDragGhost(props: {
   );
 }
 
-/** data-volt-drop values: `c:<collectionId>` root, or `f:<collectionId>:<folderId>` */
 function parseDropAttr(v: string): { collectionId: string; folderId: string | null } | null {
   if (v.startsWith("c:")) {
     return { collectionId: v.slice(2), folderId: null };
@@ -108,50 +92,18 @@ export function CollectionTree() {
   const [folderName, setFolderName] = createSignal("");
 
   let expandTimer: number | undefined;
-  /** `${collectionId}` or `${collectionId}/${folderId ?? ""}` — avoids skipping folder expand when same collection */
   let lastAutoExpandKey: string | null = null;
-  /** HTML5 DnD is unreliable in WebView2; we use pointer capture on the grip instead. */
   let activePointerDragRequestId: string | null = null;
-  /** Imperative ghost position — Solid + nested sidebar can fail to repaint fixed ghost every frame. */
   let dragGhostEl: HTMLElement | undefined;
-  /** Debug: move event sırası (down’da sıfırlanır). */
-  let dndDebugMoveSeq = 0;
-  let dndDebugNoGhostSkipCount = 0;
-  let dndDebugSyncApplyCount = 0;
 
   function syncGhostPosition(clientX: number, clientY: number) {
     const el = dragGhostEl;
-    if (!el) {
-      if (VOLT_DND_DEBUG) {
-        dndDebugNoGhostSkipCount += 1;
-        if (dndDebugNoGhostSkipCount <= 6) {
-          dndLog("syncGhostPosition:no-el", { clientX, clientY, skip: dndDebugNoGhostSkipCount });
-        }
-      }
-      return;
-    }
+    if (!el) return;
     el.style.left = `${clientX}px`;
     el.style.top = `${clientY}px`;
-    if (VOLT_DND_DEBUG) {
-      dndDebugSyncApplyCount += 1;
-      if (dndDebugSyncApplyCount <= 5 || dndDebugSyncApplyCount % 45 === 0) {
-        const cs = window.getComputedStyle(el);
-        dndLog("syncGhostPosition:applied", {
-          n: dndDebugSyncApplyCount,
-          clientX,
-          clientY,
-          styleLeft: el.style.left,
-          styleTop: el.style.top,
-          computedLeft: cs.left,
-          computedTop: cs.top,
-          computedTransform: cs.transform,
-        });
-      }
-    }
   }
 
   function clearDragDecorations() {
-    if (VOLT_DND_DEBUG) dndLog("clearDragDecorations");
     activePointerDragRequestId = null;
     dragGhostEl = undefined;
     setDragSession(null);
@@ -330,9 +282,6 @@ export function CollectionTree() {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    dndDebugMoveSeq = 0;
-    dndDebugNoGhostSkipCount = 0;
-    dndDebugSyncApplyCount = 0;
     activePointerDragRequestId = req.id;
     setDragSession({
       requestId: req.id,
@@ -345,50 +294,12 @@ export function CollectionTree() {
     lastAutoExpandKey = null;
     window.clearTimeout(expandTimer);
     document.body.style.cursor = "grabbing";
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-    if (VOLT_DND_DEBUG) {
-      let hasCapture = false;
-      try {
-        hasCapture = target.hasPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      dndLog("pointerdown", {
-        requestId: req.id,
-        pointerId: e.pointerId,
-        pointerType: e.pointerType,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        hasPointerCapture: hasCapture,
-        tag: target.tagName,
-        className: typeof target.className === "string" ? target.className : "",
-      });
-    }
-    queueMicrotask(() => {
-      if (VOLT_DND_DEBUG) {
-        dndLog("microtask:after-down", {
-          dragGhostEl: !!dragGhostEl,
-          activeId: activePointerDragRequestId,
-        });
-      }
-      syncGhostPosition(e.clientX, e.clientY);
-    });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    queueMicrotask(() => syncGhostPosition(e.clientX, e.clientY));
   }
 
   function onGripPointerMove(e: PointerEvent) {
     if (activePointerDragRequestId == null) return;
-    dndDebugMoveSeq += 1;
-    if (VOLT_DND_DEBUG && (dndDebugMoveSeq <= 6 || dndDebugMoveSeq % 35 === 0)) {
-      dndLog("pointermove", {
-        seq: dndDebugMoveSeq,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        pointerId: e.pointerId,
-        hasGhostRef: !!dragGhostEl,
-        type: e.pointerType,
-      });
-    }
     setDragSession((prev) =>
       prev ? { ...prev, x: e.clientX, y: e.clientY } : prev
     );
@@ -416,14 +327,6 @@ export function CollectionTree() {
   function onGripPointerUp(e: PointerEvent) {
     if (activePointerDragRequestId == null) return;
     const reqId = activePointerDragRequestId;
-    if (VOLT_DND_DEBUG) {
-      dndLog("pointerup", {
-        seq: dndDebugMoveSeq,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        pointerId: e.pointerId,
-      });
-    }
     activePointerDragRequestId = null;
 
     try {
@@ -966,22 +869,7 @@ export function CollectionTree() {
         }}
       </Show>
 
-      <DndDragGhost
-        getSession={dragSession}
-        onGhostRef={(el) => {
-          dragGhostEl = el ?? undefined;
-          if (VOLT_DND_DEBUG) {
-            if (el) {
-              dndLog("ghost-ref:mount", {
-                inBody: document.body.contains(el),
-                rect: el.getBoundingClientRect(),
-              });
-            } else {
-              dndLog("ghost-ref:unmount");
-            }
-          }
-        }}
-      />
+      <DndDragGhost getSession={dragSession} onGhostRef={(el) => (dragGhostEl = el ?? undefined)} />
     </div>
   );
 }
