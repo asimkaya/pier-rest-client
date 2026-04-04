@@ -1,4 +1,5 @@
 import type { Component } from "solid-js";
+import { onMount, createSignal } from "solid-js";
 import { Titlebar } from "~/components/layout/titlebar";
 import { Sidebar } from "~/features/sidebar/sidebar";
 import { TabBar } from "~/features/tabs/tab-bar";
@@ -7,13 +8,19 @@ import { ResponseViewer } from "~/features/response-viewer/response-viewer";
 import { CommandPalette } from "~/features/command-palette/command-palette";
 import { useKeybindings } from "~/lib/keybindings";
 import { state } from "~/store/app-store";
-import { createSignal } from "solid-js";
+import { loadCollections } from "~/features/collections/collection-store";
+import { loadEnvironments } from "~/features/environments/env-store";
+import { loadHistory } from "~/features/history/history-store";
 
 const App: Component = () => {
   useKeybindings();
   const [panelRatio, setPanelRatio] = createSignal(50);
   let containerRef: HTMLDivElement | undefined;
   let isDragging = false;
+
+  onMount(async () => {
+    await Promise.allSettled([loadCollections(), loadEnvironments(), loadHistory()]);
+  });
 
   function handleSplitterDown(e: MouseEvent) {
     isDragging = true;
@@ -41,22 +48,18 @@ const App: Component = () => {
       <Titlebar />
 
       <div class="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         <div style={{ width: `${state.sidebarWidth}px` }} class="shrink-0 overflow-hidden">
           <Sidebar />
         </div>
 
-        {/* Main Content */}
         <div class="flex flex-1 flex-col overflow-hidden">
           <TabBar />
 
           <div ref={containerRef} class="flex flex-1 overflow-hidden">
-            {/* Request Panel */}
             <div style={{ width: `${panelRatio()}%` }} class="overflow-hidden border-r">
               <RequestBuilder />
             </div>
 
-            {/* Splitter */}
             <div
               class="flex w-1 shrink-0 cursor-col-resize items-center justify-center hover:bg-primary/20 active:bg-primary/30 transition-colors"
               onMouseDown={handleSplitterDown}
@@ -64,7 +67,6 @@ const App: Component = () => {
               <div class="h-8 w-0.5 rounded-full bg-border" />
             </div>
 
-            {/* Response Panel */}
             <div style={{ width: `${100 - panelRatio()}%` }} class="overflow-hidden">
               <ResponseViewer />
             </div>

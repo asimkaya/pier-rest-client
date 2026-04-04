@@ -7,6 +7,7 @@ import { state, updateTabRequest, setTabLoading, setTabResponse } from "~/store/
 import { getActiveTab } from "~/store/app-store";
 import { addHistoryEntry } from "~/store/app-store";
 import { sendRequest } from "~/lib/tauri";
+import { saveHistory } from "~/features/history/history-store";
 import { cn, generateId, getMethodColor } from "~/lib/utils";
 import type { HttpMethod, BodyType, KeyValue, RequestConfig, AuthConfig } from "~/lib/types";
 
@@ -49,6 +50,7 @@ export function RequestBuilder() {
         durationMs: response.durationMs,
         request: { ...t.request },
       });
+      saveHistory();
     } catch (err) {
       setTabResponse(t.id, {
         status: 0,

@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { RequestConfig, ResponseData } from "./types";
+import { resolveVariables } from "./variable-resolver";
+import { getActiveEnvironmentVariables } from "~/features/environments/env-store";
 
 interface TauriHttpRequest {
   method: string;
@@ -11,45 +13,48 @@ interface TauriHttpRequest {
 }
 
 function buildTauriRequest(config: RequestConfig): TauriHttpRequest {
+  const vars = getActiveEnvironmentVariables();
+  const r = (s: string) => resolveVariables(s, vars);
+
   const headers: Record<string, string> = {};
   for (const h of config.headers) {
-    if (h.enabled && h.key) headers[h.key] = h.value;
+    if (h.enabled && h.key) headers[r(h.key)] = r(h.value);
   }
 
   if (config.auth.type === "bearer" && config.auth.bearer.token) {
-    headers["Authorization"] = `Bearer ${config.auth.bearer.token}`;
+    headers["Authorization"] = `Bearer ${r(config.auth.bearer.token)}`;
   } else if (config.auth.type === "basic") {
-    const encoded = btoa(`${config.auth.basic.username}:${config.auth.basic.password}`);
+    const encoded = btoa(`${r(config.auth.basic.username)}:${r(config.auth.basic.password)}`);
     headers["Authorization"] = `Basic ${encoded}`;
   } else if (config.auth.type === "apiKey" && config.auth.apiKey.location === "header") {
-    headers[config.auth.apiKey.key] = config.auth.apiKey.value;
+    headers[r(config.auth.apiKey.key)] = r(config.auth.apiKey.value);
   }
 
   const queryParams: Record<string, string> = {};
   for (const p of config.queryParams) {
-    if (p.enabled && p.key) queryParams[p.key] = p.value;
+    if (p.enabled && p.key) queryParams[r(p.key)] = r(p.value);
   }
 
   if (config.auth.type === "apiKey" && config.auth.apiKey.location === "queryParam") {
-    queryParams[config.auth.apiKey.key] = config.auth.apiKey.value;
+    queryParams[r(config.auth.apiKey.key)] = r(config.auth.apiKey.value);
   }
 
   let body: { type: string; content: string } | null = null;
   if (config.body.type === "json" && config.body.content) {
-    body = { type: "json", content: config.body.content };
+    body = { type: "json", content: r(config.body.content) };
   } else if (config.body.type === "raw" && config.body.content) {
-    body = { type: "raw", content: config.body.content };
+    body = { type: "raw", content: r(config.body.content) };
   } else if (config.body.type === "formData") {
     const formObj: Record<string, string> = {};
     for (const f of config.body.formData) {
-      if (f.enabled && f.key) formObj[f.key] = f.value;
+      if (f.enabled && f.key) formObj[r(f.key)] = r(f.value);
     }
     body = { type: "formData", content: JSON.stringify(formObj) };
   }
 
   return {
     method: config.method,
-    url: config.url,
+    url: r(config.url),
     headers,
     queryParams,
     body,
