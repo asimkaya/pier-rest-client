@@ -1,6 +1,7 @@
 import { For, Show, createSignal } from "solid-js";
 import { state, setActiveTab, closeTab, addTab, renameTab } from "~/store/app-store";
 import { cn, getMethodColor } from "~/lib/utils";
+import { Tooltip } from "~/components/ui/tooltip";
 
 export function TabBar() {
   const [editingTabId, setEditingTabId] = createSignal<string | null>(null);
@@ -100,17 +101,19 @@ export function TabBar() {
           )}
         </For>
       </div>
-      <button
-        class="flex h-9 w-9 shrink-0 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        onClick={addTab}
-        aria-label="New tab"
-        title="New tab (Ctrl+T)"
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
-          <line x1="7" y1="2" x2="7" y2="12" />
-          <line x1="2" y1="7" x2="12" y2="7" />
-        </svg>
-      </button>
+      <Tooltip label="New tab (Ctrl+T)" placement="bottom" triggerClass="shrink-0">
+        <button
+          type="button"
+          class="flex h-9 w-9 shrink-0 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          onClick={addTab}
+          aria-label="New tab"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="7" y1="2" x2="7" y2="12" />
+            <line x1="2" y1="7" x2="12" y2="7" />
+          </svg>
+        </button>
+      </Tooltip>
     </div>
   );
 }

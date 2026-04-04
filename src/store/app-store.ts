@@ -162,6 +162,20 @@ export function setTabSavedLocation(tabId: string, location: SavedLocation) {
   );
 }
 
+/** When a standalone saved request is moved into a collection, keep open tabs in sync. */
+export function retargetStandaloneSavedTabs(requestId: string, location: SavedLocation) {
+  setState(
+    produce((s) => {
+      for (const tab of s.tabs) {
+        if (tab.savedLocation?.type === "standalone" && tab.savedLocation.requestId === requestId) {
+          tab.savedLocation = location;
+          tab.isDirty = false;
+        }
+      }
+    })
+  );
+}
+
 // Sidebar
 export function setSidebarView(view: SidebarView) {
   setState("sidebarView", view);

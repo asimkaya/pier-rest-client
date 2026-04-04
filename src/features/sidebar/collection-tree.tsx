@@ -1,7 +1,8 @@
 import { For, Show, createSignal, onMount, onCleanup } from "solid-js";
-import { state, openRequestInTab } from "~/store/app-store";
+import { state, openRequestInTab, retargetStandaloneSavedTabs } from "~/store/app-store";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Tooltip } from "~/components/ui/tooltip";
 import {
   createCollection,
   deleteCollection,
@@ -25,23 +26,33 @@ interface ContextMenu {
   folderId: string | null;
 }
 
-interface MoveMenu {
-  x: number;
-  y: number;
-  request: SavedRequest;
-}
+const DRAG_MIME = "application/vnd.volt.saved-request-id";
 
 export function CollectionTree() {
   const [newCollectionName, setNewCollectionName] = createSignal("");
   const [creating, setCreating] = createSignal(false);
   const [expandedIds, setExpandedIds] = createSignal<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = createSignal<ContextMenu | null>(null);
-  const [moveMenu, setMoveMenu] = createSignal<MoveMenu | null>(null);
+  const [moveDialogRequest, setMoveDialogRequest] = createSignal<SavedRequest | null>(null);
+  const [moveDialogSelectedKey, setMoveDialogSelectedKey] = createSignal<string | null>(null);
+  const [draggingId, setDraggingId] = createSignal<string | null>(null);
+  const [dropHighlight, setDropHighlight] = createSignal<string | null>(null);
+  const [landedRequestId, setLandedRequestId] = createSignal<string | null>(null);
   const [renamingRequestId, setRenamingRequestId] = createSignal<string | null>(null);
   const [renameValue, setRenameValue] = createSignal("");
   const [renameContext, setRenameContext] = createSignal<{ collectionId?: string; folderId?: string | null; standalone?: boolean } | null>(null);
   const [creatingFolder, setCreatingFolder] = createSignal<string | null>(null);
   const [folderName, setFolderName] = createSignal("");
+
+  let expandTimer: number | undefined;
+  let lastExpandCol: string | null = null;
+
+  function clearDragDecorations() {
+    setDraggingId(null);
+    setDropHighlight(null);
+    lastExpandCol = null;
+    window.clearTimeout(expandTimer);
+  }
 
   function toggleExpanded(id: string) {
     setExpandedIds((prev) => {
@@ -143,21 +154,61 @@ export function CollectionTree() {
     setRenameContext(null);
   }
 
-  async function moveStandaloneToCollection(req: SavedRequest, collectionId: string) {
+  async function moveStandaloneToCollection(
+    req: SavedRequest,
+    collectionId: string,
+    folderId: string | null = null
+  ) {
     const saved: SavedRequest = JSON.parse(JSON.stringify(req));
-    await addRequestToCollection(collectionId, null, saved);
+    await addRequestToCollection(collectionId, folderId, saved);
     await removeSavedRequest(req.id);
+    retargetStandaloneSavedTabs(req.id, {
+      type: "collection",
+      collectionId,
+      folderId: folderId ?? undefined,
+      requestId: req.id,
+    });
     ensureExpanded(collectionId);
-    setMoveMenu(null);
+    if (folderId) ensureExpanded(folderId);
+    setMoveDialogRequest(null);
+    setMoveDialogSelectedKey(null);
+    setLandedRequestId(req.id);
+    window.setTimeout(() => setLandedRequestId(null), 2200);
+    clearDragDecorations();
+  }
+
+  function parseMoveTarget(key: string): { collectionId: string; folderId: string | null } | null {
+    if (key.startsWith("root:")) {
+      return { collectionId: key.slice(5), folderId: null };
+    }
+    if (key.startsWith("folder:")) {
+      const parts = key.split(":");
+      if (parts.length >= 3) {
+        return { collectionId: parts[1], folderId: parts.slice(2).join(":") };
+      }
+    }
+    return null;
+  }
+
+  function openMoveDialog(req: SavedRequest) {
+    setMoveDialogRequest(req);
+    const first = state.collections[0];
+    setMoveDialogSelectedKey(first ? `root:${first.id}` : null);
   }
 
   function handleDocumentClick() {
     closeContextMenu();
-    setMoveMenu(null);
   }
 
-  onMount(() => document.addEventListener("click", handleDocumentClick));
-  onCleanup(() => document.removeEventListener("click", handleDocumentClick));
+  onMount(() => {
+    document.addEventListener("click", handleDocumentClick);
+    const onDragEnd = () => clearDragDecorations();
+    document.addEventListener("dragend", onDragEnd);
+    onCleanup(() => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("dragend", onDragEnd);
+    });
+  });
 
   function renderRenameInput(req: SavedRequest) {
     return (
@@ -190,7 +241,10 @@ export function CollectionTree() {
 
     return (
       <div
-        class="flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-xs hover:bg-accent group/req cursor-pointer"
+        class={cn(
+          "flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-xs hover:bg-accent group/req cursor-pointer",
+          landedRequestId() === req.id && "request-land-enter drop-target-active"
+        )}
         onClick={() => openSavedRequest(req, collectionId, folderId)}
       >
         <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
@@ -214,60 +268,138 @@ export function CollectionTree() {
     );
   }
 
+  async function handleDropToTarget(e: DragEvent, collectionId: string, folderId: string | null) {
+    e.preventDefault();
+    const id = e.dataTransfer?.getData(DRAG_MIME) ?? "";
+    clearDragDecorations();
+    if (!id) return;
+    const req = state.savedRequests.find((r) => r.id === id);
+    if (!req) return;
+    await moveStandaloneToCollection(req, collectionId, folderId);
+  }
+
+  function onCollectionDragOver(e: DragEvent, collectionId: string) {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    dt.dropEffect = "move";
+    setDropHighlight(`c:${collectionId}`);
+    if (lastExpandCol !== collectionId) {
+      lastExpandCol = collectionId;
+      window.clearTimeout(expandTimer);
+      expandTimer = window.setTimeout(() => ensureExpanded(collectionId), 200);
+    }
+  }
+
+  function onFolderDragOver(e: DragEvent, collectionId: string, folderId: string) {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    dt.dropEffect = "move";
+    setDropHighlight(`f:${collectionId}:${folderId}`);
+    if (lastExpandCol !== collectionId) {
+      lastExpandCol = collectionId;
+      window.clearTimeout(expandTimer);
+      expandTimer = window.setTimeout(() => {
+        ensureExpanded(collectionId);
+        ensureExpanded(folderId);
+      }, 200);
+    }
+  }
+
   function renderStandaloneRequest(req: SavedRequest) {
     if (renamingRequestId() === req.id) return renderRenameInput(req);
 
     return (
       <div
-        class="group/req flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-accent cursor-pointer"
-        onClick={() => openSavedRequest(req)}
+        class={cn(
+          "group/req flex items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-accent",
+          draggingId() === req.id && "opacity-45"
+        )}
       >
-        <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
-          {req.method}
-        </span>
-        <span class="flex-1 truncate text-muted-foreground text-left">{req.name}</span>
-        <button
-          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
-          onClick={(e) => {
+        <div
+          class="shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
+          draggable
+          onDragStart={(e) => {
             e.stopPropagation();
-            setRenamingRequestId(req.id);
-            setRenameValue(req.name);
-            setRenameContext({ standalone: true });
+            const dt = e.dataTransfer;
+            if (!dt) return;
+            dt.setData(DRAG_MIME, req.id);
+            dt.effectAllowed = "move";
+            setDraggingId(req.id);
           }}
-          aria-label="Rename"
-          title="Rename"
+          onDragEnd={() => clearDragDecorations()}
+          aria-label="Drag into a collection or folder"
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden="true">
+            <circle cx="2.5" cy="2.5" r="1.2" />
+            <circle cx="7.5" cy="2.5" r="1.2" />
+            <circle cx="2.5" cy="7" r="1.2" />
+            <circle cx="7.5" cy="7" r="1.2" />
+            <circle cx="2.5" cy="11.5" r="1.2" />
+            <circle cx="7.5" cy="11.5" r="1.2" />
           </svg>
-        </button>
-        <button
-          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            setMoveMenu({ x: e.clientX, y: e.clientY, request: req });
-          }}
-          aria-label="Move to collection"
-          title="Move to collection"
+        </div>
+        <div
+          class="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+          onClick={() => openSavedRequest(req)}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
-        </button>
-        <button
-          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            removeSavedRequest(req.id);
-          }}
-          aria-label="Delete"
-        >
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-            <line x1="2" y1="2" x2="10" y2="10" />
-            <line x1="10" y1="2" x2="2" y2="10" />
-          </svg>
-        </button>
+          <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
+            {req.method}
+          </span>
+          <span class="flex-1 truncate text-left text-muted-foreground">{req.name}</span>
+        </div>
+        <div class="flex shrink-0 items-center gap-0.5">
+          <Tooltip label="Rename" placement="top">
+            <button
+              type="button"
+              class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/req:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRenamingRequestId(req.id);
+                setRenameValue(req.name);
+                setRenameContext({ standalone: true });
+              }}
+              aria-label="Rename"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </Tooltip>
+          <Tooltip label="Move to collection" placement="top">
+            <button
+              type="button"
+              class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-primary group-hover/req:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                queueMicrotask(() => openMoveDialog(req));
+              }}
+              aria-label="Move to collection"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+            </button>
+          </Tooltip>
+          <Tooltip label="Delete" placement="top">
+            <button
+              type="button"
+              class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover/req:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeSavedRequest(req.id);
+              }}
+              aria-label="Delete"
+            >
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                <line x1="2" y1="2" x2="10" y2="10" />
+                <line x1="10" y1="2" x2="2" y2="10" />
+              </svg>
+            </button>
+          </Tooltip>
+        </div>
       </div>
     );
   }
@@ -389,9 +521,20 @@ export function CollectionTree() {
           {(collection) => (
             <div class="space-y-0.5">
               <div
-                class="group flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent cursor-pointer"
+                class={cn(
+                  "group flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent cursor-pointer transition-[box-shadow,background-color] duration-150",
+                  dropHighlight() === `c:${collection.id}` &&
+                    "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
+                )}
                 onClick={() => toggleExpanded(collection.id)}
                 onContextMenu={(e) => handleContextMenu(e, collection.id)}
+                onDragOver={(e) => onCollectionDragOver(e, collection.id)}
+                onDragLeave={(e) => {
+                  const next = e.relatedTarget as Node | null;
+                  if (next && (e.currentTarget as HTMLElement).contains(next)) return;
+                  setDropHighlight((h) => (h === `c:${collection.id}` ? null : h));
+                }}
+                onDrop={(e) => void handleDropToTarget(e, collection.id, null)}
               >
                 <svg
                   width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -403,20 +546,22 @@ export function CollectionTree() {
                   <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
                 <span class="flex-1 truncate text-xs">{collection.name}</span>
-                <button
-                  class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addNewRequestToCollection(collection.id, null);
-                  }}
-                  aria-label="Add request to collection"
-                  title="New request"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <line x1="6" y1="2" x2="6" y2="10" />
-                    <line x1="2" y1="6" x2="10" y2="6" />
-                  </svg>
-                </button>
+                <Tooltip label="New request" placement="top" triggerClass="shrink-0">
+                  <button
+                    type="button"
+                    class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addNewRequestToCollection(collection.id, null);
+                    }}
+                    aria-label="Add request to collection"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <line x1="6" y1="2" x2="6" y2="10" />
+                      <line x1="2" y1="6" x2="10" y2="6" />
+                    </svg>
+                  </button>
+                </Tooltip>
                 <button
                   class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
                   onClick={(e) => {
@@ -438,9 +583,20 @@ export function CollectionTree() {
                     {(folder) => (
                       <div class="space-y-0.5">
                         <div
-                          class="group flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent cursor-pointer"
+                          class={cn(
+                            "group flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent cursor-pointer transition-[box-shadow,background-color] duration-150",
+                            dropHighlight() === `f:${collection.id}:${folder.id}` &&
+                              "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
+                          )}
                           onClick={() => toggleExpanded(folder.id)}
                           onContextMenu={(e) => handleContextMenu(e, collection.id, folder.id)}
+                          onDragOver={(e) => onFolderDragOver(e, collection.id, folder.id)}
+                          onDragLeave={(e) => {
+                            const next = e.relatedTarget as Node | null;
+                            if (next && (e.currentTarget as HTMLElement).contains(next)) return;
+                            setDropHighlight((h) => (h === `f:${collection.id}:${folder.id}` ? null : h));
+                          }}
+                          onDrop={(e) => void handleDropToTarget(e, collection.id, folder.id)}
                         >
                           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
                             class={cn("shrink-0 transition-transform", expandedIds().has(folder.id) && "rotate-90")}
@@ -448,20 +604,22 @@ export function CollectionTree() {
                             <path d="M4 2l4 4-4 4" />
                           </svg>
                           <span class="flex-1 truncate">{folder.name}</span>
-                          <button
-                            class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addNewRequestToCollection(collection.id, folder.id);
-                            }}
-                            aria-label="Add request to folder"
-                            title="New request"
-                          >
-                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                              <line x1="6" y1="2" x2="6" y2="10" />
-                              <line x1="2" y1="6" x2="10" y2="6" />
-                            </svg>
-                          </button>
+                          <Tooltip label="New request" placement="top" triggerClass="shrink-0">
+                            <button
+                              type="button"
+                              class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addNewRequestToCollection(collection.id, folder.id);
+                              }}
+                              aria-label="Add request to folder"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <line x1="6" y1="2" x2="6" y2="10" />
+                                <line x1="2" y1="6" x2="10" y2="6" />
+                              </svg>
+                            </button>
+                          </Tooltip>
                         </div>
                         <Show when={expandedIds().has(folder.id)}>
                           <div class="ml-4">
@@ -520,37 +678,118 @@ export function CollectionTree() {
         )}
       </Show>
 
-      {/* Move to collection menu */}
-      <Show when={moveMenu()}>
-        {(menu) => (
-          <div
-            class="fixed z-100 min-w-[180px] rounded-md border bg-popover py-1 shadow-lg animate-scale-in"
-            style={{ left: `${menu().x}px`, top: `${menu().y}px` }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="px-3 py-1 text-[10px] text-muted-foreground uppercase tracking-wider">Move to</p>
-            <Show
-              when={state.collections.length > 0}
-              fallback={
-                <p class="px-3 py-2 text-xs text-muted-foreground">No collections</p>
-              }
+      {/* Move to collection (modal) */}
+      <Show when={moveDialogRequest()}>
+        {(getReq) => {
+          const req = () => getReq()!;
+          return (
+            <div
+              class="fixed inset-0 z-[10040] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="volt-move-dialog-title"
+              onClick={() => {
+                setMoveDialogRequest(null);
+                setMoveDialogSelectedKey(null);
+              }}
             >
-              <For each={state.collections}>
-                {(col) => (
-                  <button
-                    class="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent"
-                    onClick={() => moveStandaloneToCollection(menu().request, col.id)}
+              <div
+                class="w-full max-w-md rounded-lg border border-border bg-popover p-4 shadow-xl animate-scale-in"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setMoveDialogRequest(null);
+                    setMoveDialogSelectedKey(null);
+                  }
+                }}
+              >
+                <h2 id="volt-move-dialog-title" class="text-sm font-semibold text-foreground">
+                  Move request
+                </h2>
+                <p class="mt-1 truncate text-xs text-muted-foreground">“{req().name}”</p>
+                <Show
+                  when={state.collections.length > 0}
+                  fallback={
+                    <p class="mt-4 text-xs text-muted-foreground">Create a collection first, then try again.</p>
+                  }
+                >
+                  <div class="mt-3 max-h-[50vh] space-y-1 overflow-y-auto rounded-md border border-border/80 bg-muted/20 p-1">
+                    <For each={state.collections}>
+                      {(col) => (
+                        <div class="space-y-0.5">
+                          <button
+                            type="button"
+                            class={cn(
+                              "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors",
+                              moveDialogSelectedKey() === `root:${col.id}`
+                                ? "bg-accent text-accent-foreground"
+                                : "hover:bg-accent/60"
+                            )}
+                            onClick={() => setMoveDialogSelectedKey(`root:${col.id}`)}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 opacity-70">
+                              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            <span class="min-w-0 flex-1 truncate font-medium">{col.name}</span>
+                            <span class="shrink-0 text-[10px] text-muted-foreground">root</span>
+                          </button>
+                          <For each={col.folders}>
+                            {(folder) => (
+                              <button
+                                type="button"
+                                class={cn(
+                                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 pl-6 text-left text-xs transition-colors",
+                                  moveDialogSelectedKey() === `folder:${col.id}:${folder.id}`
+                                    ? "bg-accent text-accent-foreground"
+                                    : "hover:bg-accent/60"
+                                )}
+                                onClick={() => setMoveDialogSelectedKey(`folder:${col.id}:${folder.id}`)}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 opacity-60">
+                                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span class="min-w-0 flex-1 truncate">
+                                  {col.name}
+                                  <span class="text-muted-foreground"> › </span>
+                                  {folder.name}
+                                </span>
+                              </button>
+                            )}
+                          </For>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setMoveDialogRequest(null);
+                      setMoveDialogSelectedKey(null);
+                    }}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    {col.name}
-                  </button>
-                )}
-              </For>
-            </Show>
-          </div>
-        )}
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!moveDialogSelectedKey() || state.collections.length === 0}
+                    onClick={() => {
+                      const key = moveDialogSelectedKey();
+                      const r = req();
+                      const parsed = key ? parseMoveTarget(key) : null;
+                      if (!parsed) return;
+                      void moveStandaloneToCollection(r, parsed.collectionId, parsed.folderId);
+                    }}
+                  >
+                    Move here
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        }}
       </Show>
     </div>
   );

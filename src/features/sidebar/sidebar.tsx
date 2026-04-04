@@ -6,6 +6,7 @@ import { HistoryPanel } from "~/features/history/history-panel";
 import { EnvironmentManager } from "~/features/environments/env-manager";
 import type { SidebarView } from "~/lib/types";
 import { cn } from "~/lib/utils";
+import { Tooltip } from "~/components/ui/tooltip";
 
 const navItems: { id: SidebarView; label: string; icon: string }[] = [
   { id: "collections", label: "Collections", icon: "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" },
@@ -19,30 +20,32 @@ export function Sidebar() {
       <div class="flex items-center gap-1 border-b px-2 py-1.5">
         <For each={navItems}>
           {(item) => (
-            <button
-              class={cn(
-                "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors",
-                state.sidebarView === item.id
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-              onClick={() => setSidebarView(item.id)}
-              title={item.label}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            <Tooltip label={item.label} placement="bottom" triggerClass="min-w-0 flex-1">
+              <button
+                type="button"
+                class={cn(
+                  "flex h-7 w-full min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors",
+                  state.sidebarView === item.id
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                )}
+                onClick={() => setSidebarView(item.id)}
               >
-                <path d={item.icon} />
-              </svg>
-              <span class="truncate">{item.label}</span>
-            </button>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d={item.icon} />
+                </svg>
+                <span class="truncate">{item.label}</span>
+              </button>
+            </Tooltip>
           )}
         </For>
       </div>

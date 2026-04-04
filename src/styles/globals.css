@@ -164,6 +164,34 @@ input, textarea {
   animation: scale-in 150ms ease-out;
 }
 
+@keyframes volt-request-land {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.request-land-enter {
+  animation: volt-request-land 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes volt-drop-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+  }
+}
+
+.drop-target-active {
+  animation: volt-drop-pulse 0.55s ease-out;
+}
+
 ::selection {
   background-color: var(--color-primary);
   color: white;
