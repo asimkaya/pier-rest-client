@@ -8,6 +8,7 @@ import type {
   ThemeMode,
   RequestConfig,
   ResponseData,
+  SavedLocation,
 } from "~/lib/types";
 import { createDefaultTab, createDefaultRequest } from "~/lib/types";
 import { generateId } from "~/lib/utils";
@@ -64,9 +65,7 @@ export function closeTab(id: string) {
       if (idx === -1) return;
       s.tabs.splice(idx, 1);
       if (s.tabs.length === 0) {
-        const newId = generateId();
-        s.tabs.push(createDefaultTab(newId));
-        s.activeTabId = newId;
+        s.activeTabId = "";
       } else if (s.activeTabId === id) {
         s.activeTabId = s.tabs[Math.min(idx, s.tabs.length - 1)].id;
       }
@@ -129,7 +128,7 @@ export function setTabDirty(id: string, dirty: boolean) {
   );
 }
 
-export function openRequestInTab(config: RequestConfig, name: string) {
+export function openRequestInTab(config: RequestConfig, name: string, savedLocation?: SavedLocation) {
   const id = generateId();
   setState(
     produce((s) => {
@@ -140,8 +139,22 @@ export function openRequestInTab(config: RequestConfig, name: string) {
         response: null,
         isDirty: false,
         isLoading: false,
+        savedLocation,
       });
       s.activeTabId = id;
+    })
+  );
+  return id;
+}
+
+export function setTabSavedLocation(tabId: string, location: SavedLocation) {
+  setState(
+    produce((s) => {
+      const tab = s.tabs.find((t) => t.id === tabId);
+      if (tab) {
+        tab.savedLocation = location;
+        tab.isDirty = false;
+      }
     })
   );
 }

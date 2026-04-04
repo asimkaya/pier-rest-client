@@ -43,6 +43,13 @@ export interface ResponseData {
   sizeBytes: number;
 }
 
+export interface SavedLocation {
+  type: "collection";
+  collectionId: string;
+  folderId?: string;
+  requestId: string;
+}
+
 export interface Tab {
   id: string;
   name: string;
@@ -50,6 +57,7 @@ export interface Tab {
   response: ResponseData | null;
   isDirty: boolean;
   isLoading: boolean;
+  savedLocation?: SavedLocation;
 }
 
 export interface Collection {

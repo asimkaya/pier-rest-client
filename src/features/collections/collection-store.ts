@@ -21,7 +21,11 @@ export async function loadCollections(): Promise<void> {
       if (data) collections.push(data);
     }
 
-    collections.sort((a, b) => a.name.localeCompare(b.name));
+    collections.sort((a, b) => {
+      if (a.id === "_unsorted") return -1;
+      if (b.id === "_unsorted") return 1;
+      return a.name.localeCompare(b.name);
+    });
     setCollections(collections);
   } catch {
     setCollections([]);
@@ -114,6 +118,63 @@ export async function removeFolderFromCollection(
 
   const updated = structuredClone(collection) as Collection;
   updated.folders = updated.folders.filter((f) => f.id !== folderId);
+
+  await writeJsonFile(collectionPath(collectionId), updated);
+  await loadCollections();
+}
+
+export async function renameRequestInCollection(
+  collectionId: string,
+  requestId: string,
+  newName: string
+): Promise<void> {
+  const collection = state.collections.find((c) => c.id === collectionId);
+  if (!collection) return;
+
+  const updated = structuredClone(collection) as Collection;
+  const rootReq = updated.requests.find((r) => r.id === requestId);
+  if (rootReq) {
+    rootReq.name = newName;
+  } else {
+    for (const folder of updated.folders) {
+      const folderReq = folder.requests.find((r) => r.id === requestId);
+      if (folderReq) {
+        folderReq.name = newName;
+        break;
+      }
+    }
+  }
+
+  await writeJsonFile(collectionPath(collectionId), updated);
+  await loadCollections();
+}
+
+export async function updateRequestInCollection(
+  collectionId: string,
+  requestId: string,
+  updates: Partial<SavedRequest>
+): Promise<void> {
+  const collection = state.collections.find((c) => c.id === collectionId);
+  if (!collection) return;
+
+  const updated = structuredClone(collection) as Collection;
+
+  function applyUpdates(req: SavedRequest) {
+    Object.assign(req, updates);
+  }
+
+  const rootReq = updated.requests.find((r) => r.id === requestId);
+  if (rootReq) {
+    applyUpdates(rootReq);
+  } else {
+    for (const folder of updated.folders) {
+      const folderReq = folder.requests.find((r) => r.id === requestId);
+      if (folderReq) {
+        applyUpdates(folderReq);
+        break;
+      }
+    }
+  }
 
   await writeJsonFile(collectionPath(collectionId), updated);
   await loadCollections();

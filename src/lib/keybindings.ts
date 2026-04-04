@@ -1,5 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
 import { addTab, closeTab, getActiveTab } from "~/store/app-store";
+import { saveActiveRequest } from "~/features/collections/save-request";
 
 interface KeyBinding {
   key: string;
@@ -20,6 +21,12 @@ const bindings: KeyBinding[] = [
       if (tab) closeTab(tab.id);
     },
     description: "Close tab",
+  },
+  {
+    key: "s",
+    ctrl: true,
+    action: () => saveActiveRequest(),
+    description: "Save request",
   },
 ];
 

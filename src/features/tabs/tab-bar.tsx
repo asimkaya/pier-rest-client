@@ -1,8 +1,32 @@
-import { For } from "solid-js";
-import { state, setActiveTab, closeTab, addTab } from "~/store/app-store";
+import { For, Show, createSignal } from "solid-js";
+import { state, setActiveTab, closeTab, addTab, renameTab } from "~/store/app-store";
 import { cn, getMethodColor } from "~/lib/utils";
 
 export function TabBar() {
+  const [editingTabId, setEditingTabId] = createSignal<string | null>(null);
+  const [editValue, setEditValue] = createSignal("");
+
+  function startRename(tabId: string, currentName: string, e: MouseEvent) {
+    e.stopPropagation();
+    setEditingTabId(tabId);
+    setEditValue(currentName);
+  }
+
+  function commitRename() {
+    const id = editingTabId();
+    const name = editValue().trim();
+    if (id && name) {
+      renameTab(id, name);
+    }
+    setEditingTabId(null);
+    setEditValue("");
+  }
+
+  function cancelRename() {
+    setEditingTabId(null);
+    setEditValue("");
+  }
+
   return (
     <div class="flex h-9 shrink-0 items-center border-b bg-card">
       <div class="flex flex-1 items-center overflow-x-auto">
@@ -17,10 +41,45 @@ export function TabBar() {
               )}
               onClick={() => setActiveTab(tab.id)}
             >
-              <span class={cn("font-mono text-[10px] font-bold", getMethodColor(tab.request.method))}>
+              <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(tab.request.method))}>
                 {tab.request.method}
               </span>
-              <span class="flex-1 truncate">{tab.name}</span>
+
+              <Show
+                when={editingTabId() === tab.id}
+                fallback={
+                  <span
+                    class="flex-1 truncate cursor-text"
+                    onClick={(e) => {
+                      if (state.activeTabId === tab.id) {
+                        startRename(tab.id, tab.name, e);
+                      }
+                    }}
+                  >
+                    {tab.name}
+                  </span>
+                }
+              >
+                <input
+                  ref={(el) => {
+                    requestAnimationFrame(() => {
+                      el.focus();
+                      el.select();
+                    });
+                  }}
+                  value={editValue()}
+                  onInput={(e) => setEditValue(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") commitRename();
+                    if (e.key === "Escape") cancelRename();
+                  }}
+                  onBlur={() => commitRename()}
+                  onClick={(e) => e.stopPropagation()}
+                  class="h-5 w-full min-w-0 flex-1 rounded border bg-background px-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                />
+              </Show>
+
               {tab.isDirty && (
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               )}
