@@ -183,10 +183,6 @@ export function CollectionTree() {
     await addRequestToCollection(collectionId, folderId, saved);
     ensureExpanded(collectionId);
     if (folderId) ensureExpanded(folderId);
-
-    setRenamingRequestId(requestId);
-    setRenameValue("New Request");
-    setRenameContext({ collectionId, folderId });
   }
 
   async function commitRename() {
