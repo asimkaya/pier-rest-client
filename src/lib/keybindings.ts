@@ -30,6 +30,13 @@ const bindings: KeyBinding[] = [
   },
 ];
 
+function keyMatches(e: KeyboardEvent, expected: string): boolean {
+  const exp = expected.toLowerCase();
+  if (e.key.toLowerCase() === exp) return true;
+  if (exp.length === 1 && exp >= "a" && exp <= "z" && e.code === `Key${exp.toUpperCase()}`) return true;
+  return false;
+}
+
 export function useKeybindings(extra?: KeyBinding[]) {
   function handler(e: KeyboardEvent) {
     const allBindings = [...bindings, ...(extra ?? [])];
@@ -38,7 +45,7 @@ export function useKeybindings(extra?: KeyBinding[]) {
       const shiftMatch = b.shift ? e.shiftKey : !e.shiftKey;
       const altMatch = b.alt ? e.altKey : !e.altKey;
 
-      if (e.key.toLowerCase() === b.key.toLowerCase() && ctrlMatch && shiftMatch && altMatch) {
+      if (keyMatches(e, b.key) && ctrlMatch && shiftMatch && altMatch) {
         e.preventDefault();
         b.action();
         return;
@@ -46,6 +53,6 @@ export function useKeybindings(extra?: KeyBinding[]) {
     }
   }
 
-  onMount(() => document.addEventListener("keydown", handler));
-  onCleanup(() => document.removeEventListener("keydown", handler));
+  onMount(() => document.addEventListener("keydown", handler, { capture: true }));
+  onCleanup(() => document.removeEventListener("keydown", handler, { capture: true }));
 }

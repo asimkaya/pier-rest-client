@@ -38,7 +38,7 @@ const [state, setState] = createStore<AppState>({
   activeEnvironmentId: null,
   history: [],
   sidebarView: "collections",
-  sidebarWidth: 260,
+  sidebarWidth: 330,
   theme: "system",
 });
 
