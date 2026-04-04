@@ -7,18 +7,34 @@ export function Titlebar() {
   const appWindow = getCurrentWindow();
 
   async function checkMaximized() {
-    setIsMaximized(await appWindow.isMaximized());
+    try {
+      setIsMaximized(await appWindow.isMaximized());
+    } catch {
+      // ignore errors during init
+    }
   }
 
   appWindow.onResized(() => checkMaximized());
   checkMaximized();
 
+  function handleDragStart(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest("button, [data-no-drag]")) return;
+    e.preventDefault();
+    appWindow.startDragging();
+  }
+
+  async function handleDoubleClick(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest("button, [data-no-drag]")) return;
+    await appWindow.toggleMaximize();
+  }
+
   return (
     <div
       class="flex h-9 shrink-0 items-center justify-between border-b bg-background select-none"
-      data-tauri-drag-region
+      onMouseDown={handleDragStart}
+      onDblClick={handleDoubleClick}
     >
-      <div class="flex items-center gap-2 pl-3" data-tauri-drag-region>
+      <div class="flex items-center gap-2 pl-3">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-primary">
           <path
             d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
@@ -28,12 +44,12 @@ export function Titlebar() {
             stroke-linejoin="round"
           />
         </svg>
-        <span class="text-xs font-semibold tracking-wide text-foreground/80" data-tauri-drag-region>
+        <span class="text-xs font-semibold tracking-wide text-foreground/80">
           Volt
         </span>
       </div>
 
-      <div class="flex items-center gap-2" data-tauri-drag-region>
+      <div class="flex items-center gap-2" data-no-drag>
         <EnvironmentSelector />
         <kbd class="hidden sm:inline-flex items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
           Ctrl+K
