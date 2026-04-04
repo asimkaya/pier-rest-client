@@ -1,5 +1,5 @@
 import { onCleanup, onMount } from "solid-js";
-import { addTab } from "~/store/app-store";
+import { addTab, closeTab, getActiveTab } from "~/store/app-store";
 
 interface KeyBinding {
   key: string;
@@ -12,6 +12,15 @@ interface KeyBinding {
 
 const bindings: KeyBinding[] = [
   { key: "t", ctrl: true, action: () => addTab(), description: "New tab" },
+  {
+    key: "w",
+    ctrl: true,
+    action: () => {
+      const tab = getActiveTab();
+      if (tab) closeTab(tab.id);
+    },
+    description: "Close tab",
+  },
 ];
 
 export function useKeybindings(extra?: KeyBinding[]) {
@@ -32,8 +41,4 @@ export function useKeybindings(extra?: KeyBinding[]) {
 
   onMount(() => document.addEventListener("keydown", handler));
   onCleanup(() => document.removeEventListener("keydown", handler));
-}
-
-export function getBindings(): KeyBinding[] {
-  return bindings;
 }

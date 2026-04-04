@@ -1,32 +1,64 @@
-import { createSignal, Show, For, onMount, onCleanup } from "solid-js";
-import { Input } from "~/components/ui/input";
-import { addTab, setSidebarView } from "~/store/app-store";
+import { createSignal, Show, For, onMount, onCleanup, createMemo } from "solid-js";
+import { addTab, setSidebarView, closeTab, getActiveTab, state, setTheme, setActiveEnvironment } from "~/store/app-store";
+import { clearHistory } from "~/features/history/history-store";
 import { cn } from "~/lib/utils";
+import type { ThemeMode } from "~/lib/types";
 
 interface CommandItem {
   id: string;
   label: string;
+  category: string;
   shortcut?: string;
   action: () => void;
 }
 
-const commands: CommandItem[] = [
-  { id: "new-request", label: "New Request", shortcut: "Ctrl+T", action: () => addTab() },
-  { id: "view-collections", label: "View Collections", action: () => setSidebarView("collections") },
-  { id: "view-history", label: "View History", action: () => setSidebarView("history") },
-  { id: "view-environments", label: "View Environments", action: () => setSidebarView("environments") },
-];
+function buildCommands(): CommandItem[] {
+  const commands: CommandItem[] = [
+    { id: "new-request", label: "New Request", category: "General", shortcut: "Ctrl+T", action: () => addTab() },
+    {
+      id: "close-tab",
+      label: "Close Current Tab",
+      category: "General",
+      action: () => {
+        const t = getActiveTab();
+        if (t) closeTab(t.id);
+      },
+    },
+    { id: "view-collections", label: "View Collections", category: "Navigation", action: () => setSidebarView("collections") },
+    { id: "view-history", label: "View History", category: "Navigation", action: () => setSidebarView("history") },
+    { id: "view-environments", label: "View Environments", category: "Navigation", action: () => setSidebarView("environments") },
+    { id: "clear-history", label: "Clear History", category: "Data", action: () => clearHistory() },
+    { id: "theme-system", label: "Theme: System", category: "Appearance", action: () => setTheme("system" as ThemeMode) },
+    { id: "theme-dark", label: "Theme: Dark", category: "Appearance", action: () => setTheme("dark" as ThemeMode) },
+    { id: "theme-light", label: "Theme: Light", category: "Appearance", action: () => setTheme("light" as ThemeMode) },
+  ];
+
+  for (const env of state.environments) {
+    commands.push({
+      id: `env-${env.id}`,
+      label: `Switch to: ${env.name}`,
+      category: "Environments",
+      action: () => setActiveEnvironment(env.id),
+    });
+  }
+
+  return commands;
+}
 
 export function CommandPalette() {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
-  const filtered = () => {
+  const commands = createMemo(() => buildCommands());
+
+  const filtered = createMemo(() => {
     const q = query().toLowerCase();
-    if (!q) return commands;
-    return commands.filter((c) => c.label.toLowerCase().includes(q));
-  };
+    if (!q) return commands();
+    return commands().filter(
+      (c) => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q)
+    );
+  });
 
   function execute(cmd: CommandItem) {
     cmd.action();
@@ -69,11 +101,11 @@ export function CommandPalette() {
   return (
     <Show when={open()}>
       <div
-        class="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50"
+        class="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 animate-fade-in"
         onClick={() => setOpen(false)}
       >
         <div
-          class="w-[500px] rounded-lg border bg-popover shadow-2xl"
+          class="w-[500px] rounded-lg border bg-popover shadow-2xl animate-scale-in"
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center border-b px-3">
@@ -105,9 +137,12 @@ export function CommandPalette() {
                   onClick={() => execute(cmd)}
                   onMouseEnter={() => setSelectedIndex(i())}
                 >
-                  <span>{cmd.label}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-muted-foreground w-20 text-left">{cmd.category}</span>
+                    <span>{cmd.label}</span>
+                  </div>
                   {cmd.shortcut && (
-                    <kbd class="ml-auto text-[10px] text-muted-foreground tracking-wide">
+                    <kbd class="text-[10px] text-muted-foreground tracking-wide">
                       {cmd.shortcut}
                     </kbd>
                   )}
@@ -117,6 +152,17 @@ export function CommandPalette() {
             <Show when={filtered().length === 0}>
               <p class="py-4 text-center text-sm text-muted-foreground">No results found.</p>
             </Show>
+          </div>
+          <div class="border-t px-3 py-1.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span>
+              <kbd class="rounded border px-1">↑↓</kbd> navigate
+            </span>
+            <span>
+              <kbd class="rounded border px-1">↵</kbd> select
+            </span>
+            <span>
+              <kbd class="rounded border px-1">esc</kbd> close
+            </span>
           </div>
         </div>
       </div>

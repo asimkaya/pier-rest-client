@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { EnvironmentSelector } from "~/features/environments/env-selector";
 
 export function Titlebar() {
   const [isMaximized, setIsMaximized] = createSignal(false);
@@ -30,6 +31,13 @@ export function Titlebar() {
         <span class="text-xs font-semibold tracking-wide text-foreground/80" data-tauri-drag-region>
           Volt
         </span>
+      </div>
+
+      <div class="flex items-center gap-2" data-tauri-drag-region>
+        <EnvironmentSelector />
+        <kbd class="hidden sm:inline-flex items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          Ctrl+K
+        </kbd>
       </div>
 
       <div class="flex h-full">
