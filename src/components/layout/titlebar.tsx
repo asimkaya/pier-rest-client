@@ -5,33 +5,57 @@ import { EnvironmentSelector } from "~/features/environments/env-selector";
 export function Titlebar() {
   const [isMaximized, setIsMaximized] = createSignal(false);
   const appWindow = getCurrentWindow();
+  let dblClickTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingDrag = false;
 
   async function checkMaximized() {
     try {
       setIsMaximized(await appWindow.isMaximized());
     } catch {
-      // ignore errors during init
+      /* ignore */
     }
   }
 
   appWindow.onResized(() => checkMaximized());
   checkMaximized();
 
-  function handleDragStart(e: MouseEvent) {
-    if ((e.target as HTMLElement).closest("button, [data-no-drag]")) return;
-    e.preventDefault();
-    appWindow.startDragging();
+  function isInteractive(e: MouseEvent) {
+    return !!(e.target as HTMLElement).closest("button, [data-no-drag]");
+  }
+
+  function handleMouseDown(e: MouseEvent) {
+    if (isInteractive(e)) return;
+    if (e.detail >= 2) return;
+    pendingDrag = true;
+
+    dblClickTimer = setTimeout(() => {
+      if (pendingDrag) {
+        pendingDrag = false;
+        appWindow.startDragging();
+      }
+    }, 150);
   }
 
   async function handleDoubleClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).closest("button, [data-no-drag]")) return;
+    if (isInteractive(e)) return;
+    pendingDrag = false;
+    if (dblClickTimer) {
+      clearTimeout(dblClickTimer);
+      dblClickTimer = null;
+    }
     await appWindow.toggleMaximize();
+  }
+
+  function openCommandPalette() {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })
+    );
   }
 
   return (
     <div
       class="flex h-9 shrink-0 items-center justify-between border-b bg-background select-none"
-      onMouseDown={handleDragStart}
+      onMouseDown={handleMouseDown}
       onDblClick={handleDoubleClick}
     >
       <div class="flex items-center gap-2 pl-3">
@@ -51,9 +75,17 @@ export function Titlebar() {
 
       <div class="flex items-center gap-2" data-no-drag>
         <EnvironmentSelector />
-        <kbd class="hidden sm:inline-flex items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-          Ctrl+K
-        </kbd>
+        <button
+          class="hidden sm:inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          onClick={openCommandPalette}
+          title="Command Palette (Ctrl+K)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span>Ctrl+K</span>
+        </button>
       </div>
 
       <div class="flex h-full">

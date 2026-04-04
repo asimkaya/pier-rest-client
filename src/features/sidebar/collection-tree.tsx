@@ -1,5 +1,5 @@
 import { For, Show, createSignal, onMount, onCleanup } from "solid-js";
-import { state, openRequestInTab, getActiveTab } from "~/store/app-store";
+import { state, openRequestInTab } from "~/store/app-store";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -8,9 +8,12 @@ import {
   addFolderToCollection,
   addRequestToCollection,
   removeRequestFromCollection,
-  removeFolderFromCollection,
   renameRequestInCollection,
 } from "~/features/collections/collection-store";
+import {
+  removeSavedRequest,
+  renameSavedRequest,
+} from "~/features/collections/saved-requests-store";
 import { cn, getMethodColor, generateId } from "~/lib/utils";
 import type { SavedRequest } from "~/lib/types";
 import { createDefaultRequest } from "~/lib/types";
@@ -22,14 +25,21 @@ interface ContextMenu {
   folderId: string | null;
 }
 
+interface MoveMenu {
+  x: number;
+  y: number;
+  request: SavedRequest;
+}
+
 export function CollectionTree() {
   const [newCollectionName, setNewCollectionName] = createSignal("");
   const [creating, setCreating] = createSignal(false);
   const [expandedIds, setExpandedIds] = createSignal<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = createSignal<ContextMenu | null>(null);
+  const [moveMenu, setMoveMenu] = createSignal<MoveMenu | null>(null);
   const [renamingRequestId, setRenamingRequestId] = createSignal<string | null>(null);
   const [renameValue, setRenameValue] = createSignal("");
-  const [renameContext, setRenameContext] = createSignal<{ collectionId: string; folderId: string | null } | null>(null);
+  const [renameContext, setRenameContext] = createSignal<{ collectionId?: string; folderId?: string | null; standalone?: boolean } | null>(null);
   const [creatingFolder, setCreatingFolder] = createSignal<string | null>(null);
   const [folderName, setFolderName] = createSignal("");
 
@@ -59,7 +69,7 @@ export function CollectionTree() {
     setCreating(false);
   }
 
-  function openRequest(req: SavedRequest, collectionId: string, folderId?: string) {
+  function openSavedRequest(req: SavedRequest, collectionId?: string, folderId?: string) {
     openRequestInTab(
       {
         method: req.method,
@@ -70,7 +80,9 @@ export function CollectionTree() {
         auth: { ...req.auth },
       },
       req.name,
-      { type: "collection", collectionId, folderId, requestId: req.id }
+      collectionId
+        ? { type: "collection", collectionId, folderId, requestId: req.id }
+        : { type: "standalone", requestId: req.id }
     );
   }
 
@@ -111,7 +123,13 @@ export function CollectionTree() {
     const reqId = renamingRequestId();
     const ctx = renameContext();
     const name = renameValue().trim();
-    if (reqId && ctx && name) {
+    if (!reqId || !name) {
+      cancelRename();
+      return;
+    }
+    if (ctx?.standalone) {
+      await renameSavedRequest(reqId, name);
+    } else if (ctx?.collectionId) {
       await renameRequestInCollection(ctx.collectionId, reqId, name);
     }
     setRenamingRequestId(null);
@@ -125,71 +143,147 @@ export function CollectionTree() {
     setRenameContext(null);
   }
 
+  async function moveStandaloneToCollection(req: SavedRequest, collectionId: string) {
+    const saved: SavedRequest = JSON.parse(JSON.stringify(req));
+    await addRequestToCollection(collectionId, null, saved);
+    await removeSavedRequest(req.id);
+    ensureExpanded(collectionId);
+    setMoveMenu(null);
+  }
+
   function handleDocumentClick() {
     closeContextMenu();
+    setMoveMenu(null);
   }
 
   onMount(() => document.addEventListener("click", handleDocumentClick));
   onCleanup(() => document.removeEventListener("click", handleDocumentClick));
 
-  function renderRequest(req: SavedRequest, collectionId: string, folderId?: string) {
-    const isRenaming = () => renamingRequestId() === req.id;
+  function renderRenameInput(req: SavedRequest) {
+    return (
+      <div class="flex items-center gap-1 px-2 py-0.5">
+        <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
+          {req.method}
+        </span>
+        <input
+          ref={(el) => {
+            requestAnimationFrame(() => {
+              el.focus();
+              el.select();
+            });
+          }}
+          value={renameValue()}
+          onInput={(e) => setRenameValue(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitRename();
+            if (e.key === "Escape") cancelRename();
+          }}
+          onBlur={() => commitRename()}
+          class="h-5 flex-1 rounded border bg-background px-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+        />
+      </div>
+    );
+  }
+
+  function renderCollectionRequest(req: SavedRequest, collectionId: string, folderId?: string) {
+    if (renamingRequestId() === req.id) return renderRenameInput(req);
 
     return (
-      <Show
-        when={isRenaming()}
-        fallback={
-          <button
-            class="flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-xs hover:bg-accent group/req"
-            onClick={() => openRequest(req, collectionId, folderId)}
-          >
-            <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
-              {req.method}
-            </span>
-            <span class="flex-1 truncate text-muted-foreground text-left">{req.name}</span>
-            <button
-              class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeRequestFromCollection(collectionId, req.id);
-              }}
-              aria-label="Remove request"
-            >
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                <line x1="2" y1="2" x2="10" y2="10" />
-                <line x1="10" y1="2" x2="2" y2="10" />
-              </svg>
-            </button>
-          </button>
-        }
+      <div
+        class="flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-xs hover:bg-accent group/req cursor-pointer"
+        onClick={() => openSavedRequest(req, collectionId, folderId)}
       >
-        <div class="flex items-center gap-1 px-2 py-0.5">
-          <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
-            {req.method}
-          </span>
-          <input
-            ref={(el) => {
-              requestAnimationFrame(() => {
-                el.focus();
-                el.select();
-              });
-            }}
-            value={renameValue()}
-            onInput={(e) => setRenameValue(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
-              if (e.key === "Escape") cancelRename();
-            }}
-            onBlur={() => commitRename()}
-            class="h-5 flex-1 rounded border bg-background px-1 text-xs outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      </Show>
+        <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
+          {req.method}
+        </span>
+        <span class="flex-1 truncate text-muted-foreground text-left">{req.name}</span>
+        <button
+          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            removeRequestFromCollection(collectionId, req.id);
+          }}
+          aria-label="Remove request"
+        >
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="2" y1="2" x2="10" y2="10" />
+            <line x1="10" y1="2" x2="2" y2="10" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  function renderStandaloneRequest(req: SavedRequest) {
+    if (renamingRequestId() === req.id) return renderRenameInput(req);
+
+    return (
+      <div
+        class="group/req flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-accent cursor-pointer"
+        onClick={() => openSavedRequest(req)}
+      >
+        <span class={cn("font-mono text-[10px] font-bold shrink-0", getMethodColor(req.method))}>
+          {req.method}
+        </span>
+        <span class="flex-1 truncate text-muted-foreground text-left">{req.name}</span>
+        <button
+          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            setRenamingRequestId(req.id);
+            setRenameValue(req.name);
+            setRenameContext({ standalone: true });
+          }}
+          aria-label="Rename"
+          title="Rename"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+        <button
+          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMoveMenu({ x: e.clientX, y: e.clientY, request: req });
+          }}
+          aria-label="Move to collection"
+          title="Move to collection"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+        </button>
+        <button
+          class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            removeSavedRequest(req.id);
+          }}
+          aria-label="Delete"
+        >
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="2" y1="2" x2="10" y2="10" />
+            <line x1="10" y1="2" x2="2" y2="10" />
+          </svg>
+        </button>
+      </div>
     );
   }
 
   return (
     <div class="space-y-1">
+      {/* Standalone saved requests */}
+      <Show when={state.savedRequests.length > 0}>
+        <div class="space-y-0.5 pb-2 mb-2 border-b">
+          <p class="px-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Saved</p>
+          <For each={state.savedRequests}>
+            {(req) => renderStandaloneRequest(req)}
+          </For>
+        </div>
+      </Show>
+
       <Show when={creatingFolder()}>
         <div class="mb-2 rounded-md border bg-card p-2 space-y-2 animate-scale-in">
           <p class="text-[10px] text-muted-foreground">New folder</p>
@@ -253,14 +347,16 @@ export function CollectionTree() {
       </Show>
 
       <Show
-        when={state.collections.length > 0}
+        when={state.collections.length > 0 || state.savedRequests.length > 0}
         fallback={
-          <div class="flex flex-col items-center gap-2 py-8 text-center">
-            <p class="text-xs text-muted-foreground">No collections yet</p>
-            <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
-              New Collection
-            </Button>
-          </div>
+          <Show when={state.savedRequests.length === 0}>
+            <div class="flex flex-col items-center gap-2 py-8 text-center">
+              <p class="text-xs text-muted-foreground">No collections yet</p>
+              <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
+                New Collection
+              </Button>
+            </div>
+          </Show>
         }
       >
         <div class="mb-2">
@@ -282,16 +378,8 @@ export function CollectionTree() {
                 onContextMenu={(e) => handleContextMenu(e, collection.id)}
               >
                 <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  class={cn(
-                    "shrink-0 transition-transform",
-                    expandedIds().has(collection.id) && "rotate-90"
-                  )}
+                  width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
+                  class={cn("shrink-0 transition-transform", expandedIds().has(collection.id) && "rotate-90")}
                 >
                   <path d="M4 2l4 4-4 4" />
                 </svg>
@@ -362,7 +450,7 @@ export function CollectionTree() {
                         <Show when={expandedIds().has(folder.id)}>
                           <div class="ml-4">
                             <For each={folder.requests}>
-                              {(req) => renderRequest(req, collection.id, folder.id)}
+                              {(req) => renderCollectionRequest(req, collection.id, folder.id)}
                             </For>
                           </div>
                         </Show>
@@ -370,7 +458,7 @@ export function CollectionTree() {
                     )}
                   </For>
                   <For each={collection.requests}>
-                    {(req) => renderRequest(req, collection.id)}
+                    {(req) => renderCollectionRequest(req, collection.id)}
                   </For>
                 </div>
               </Show>
@@ -411,6 +499,39 @@ export function CollectionTree() {
                 </svg>
                 New Folder
               </button>
+            </Show>
+          </div>
+        )}
+      </Show>
+
+      {/* Move to collection menu */}
+      <Show when={moveMenu()}>
+        {(menu) => (
+          <div
+            class="fixed z-100 min-w-[180px] rounded-md border bg-popover py-1 shadow-lg animate-scale-in"
+            style={{ left: `${menu().x}px`, top: `${menu().y}px` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="px-3 py-1 text-[10px] text-muted-foreground uppercase tracking-wider">Move to</p>
+            <Show
+              when={state.collections.length > 0}
+              fallback={
+                <p class="px-3 py-2 text-xs text-muted-foreground">No collections</p>
+              }
+            >
+              <For each={state.collections}>
+                {(col) => (
+                  <button
+                    class="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent"
+                    onClick={() => moveStandaloneToCollection(menu().request, col.id)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    {col.name}
+                  </button>
+                )}
+              </For>
             </Show>
           </div>
         )}

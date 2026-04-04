@@ -44,8 +44,8 @@ export interface ResponseData {
 }
 
 export interface SavedLocation {
-  type: "collection";
-  collectionId: string;
+  type: "collection" | "standalone";
+  collectionId?: string;
   folderId?: string;
   requestId: string;
 }

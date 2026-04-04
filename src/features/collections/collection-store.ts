@@ -21,11 +21,7 @@ export async function loadCollections(): Promise<void> {
       if (data) collections.push(data);
     }
 
-    collections.sort((a, b) => {
-      if (a.id === "_unsorted") return -1;
-      if (b.id === "_unsorted") return 1;
-      return a.name.localeCompare(b.name);
-    });
+    collections.sort((a, b) => a.name.localeCompare(b.name));
     setCollections(collections);
   } catch {
     setCollections([]);
@@ -47,7 +43,8 @@ export async function createCollection(name: string): Promise<Collection> {
 export async function renameCollection(id: string, name: string): Promise<void> {
   const collection = state.collections.find((c) => c.id === id);
   if (!collection) return;
-  const updated = { ...collection, name };
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
+  updated.name = name;
   await writeJsonFile(collectionPath(id), updated);
   await loadCollections();
 }
@@ -65,7 +62,7 @@ export async function addRequestToCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
 
   if (folderId) {
     const folder = updated.folders.find((f) => f.id === folderId);
@@ -85,7 +82,7 @@ export async function removeRequestFromCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
   updated.requests = updated.requests.filter((r) => r.id !== requestId);
   for (const folder of updated.folders) {
     folder.requests = folder.requests.filter((r) => r.id !== requestId);
@@ -102,7 +99,7 @@ export async function addFolderToCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
   updated.folders.push({ id: generateId(), name, requests: [] });
 
   await writeJsonFile(collectionPath(collectionId), updated);
@@ -116,7 +113,7 @@ export async function removeFolderFromCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
   updated.folders = updated.folders.filter((f) => f.id !== folderId);
 
   await writeJsonFile(collectionPath(collectionId), updated);
@@ -131,7 +128,7 @@ export async function renameRequestInCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
   const rootReq = updated.requests.find((r) => r.id === requestId);
   if (rootReq) {
     rootReq.name = newName;
@@ -157,7 +154,7 @@ export async function updateRequestInCollection(
   const collection = state.collections.find((c) => c.id === collectionId);
   if (!collection) return;
 
-  const updated = structuredClone(collection) as Collection;
+  const updated = JSON.parse(JSON.stringify(collection)) as Collection;
 
   function applyUpdates(req: SavedRequest) {
     Object.assign(req, updates);

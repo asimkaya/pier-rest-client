@@ -114,7 +114,9 @@ export function CommandPalette() {
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
-              autofocus
+              ref={(el) => {
+                requestAnimationFrame(() => el.focus());
+              }}
               value={query()}
               onInput={(e) => {
                 setQuery(e.currentTarget.value);

@@ -9,6 +9,7 @@ import type {
   RequestConfig,
   ResponseData,
   SavedLocation,
+  SavedRequest,
 } from "~/lib/types";
 import { createDefaultTab, createDefaultRequest } from "~/lib/types";
 import { generateId } from "~/lib/utils";
@@ -17,6 +18,7 @@ interface AppState {
   tabs: Tab[];
   activeTabId: string;
   collections: Collection[];
+  savedRequests: SavedRequest[];
   environments: Environment[];
   activeEnvironmentId: string | null;
   history: RequestLog[];
@@ -31,6 +33,7 @@ const [state, setState] = createStore<AppState>({
   tabs: [createDefaultTab(initialTabId)],
   activeTabId: initialTabId,
   collections: [],
+  savedRequests: [],
   environments: [],
   activeEnvironmentId: null,
   history: [],
@@ -183,6 +186,11 @@ export function setTheme(theme: ThemeMode) {
 // Collections
 export function setCollections(collections: Collection[]) {
   setState("collections", collections);
+}
+
+// Saved Requests (standalone)
+export function setSavedRequests(requests: SavedRequest[]) {
+  setState("savedRequests", requests);
 }
 
 // Environments

@@ -11,6 +11,7 @@ import { state, setTheme, addTab } from "~/store/app-store";
 import { loadCollections } from "~/features/collections/collection-store";
 import { loadEnvironments } from "~/features/environments/env-store";
 import { loadHistory } from "~/features/history/history-store";
+import { loadSavedRequests } from "~/features/collections/saved-requests-store";
 
 const App: Component = () => {
   useKeybindings();
@@ -20,7 +21,7 @@ const App: Component = () => {
 
   onMount(async () => {
     setTheme(state.theme);
-    await Promise.allSettled([loadCollections(), loadEnvironments(), loadHistory()]);
+    await Promise.allSettled([loadCollections(), loadSavedRequests(), loadEnvironments(), loadHistory()]);
   });
 
   function handleSplitterDown(e: MouseEvent) {
