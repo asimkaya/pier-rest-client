@@ -32,7 +32,7 @@ Think of it as a lightweight, open-source alternative to Postman/Insomnia with a
 | Keyboard shortcuts | Done | Ctrl+T → `createNewRequestTab`; Ctrl+W (close), Ctrl+S (save), Ctrl+K (commands) |
 | Accessibility | Partial | ARIA labels present, focus management needs refinement |
 | Tests | Not started | No unit or integration tests yet |
-| CI/CD | Not started | No GitHub Actions or release pipeline |
+| CI/CD | Partial | `.github/workflows/release-windows.yml` — Windows x64 NSIS on `workflow_dispatch` (artifact) or `v*` tag push (draft GitHub Release). See [Tauri distribute](https://v2.tauri.app/distribute/) |
 | App icons | Done | `pier-logo.png` (512²) → `bun run tauri icon pier-logo.png -o src-tauri/icons`; `public/` favicons for Vite |
 | Documentation (user-facing) | Not started | Only this dev doc and README exist |
 

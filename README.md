@@ -49,6 +49,14 @@ A **local-first**, **privacy-first** REST client. No account — collections, en
 - [Bun](https://bun.sh/)
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
 
+## Download (Windows x64)
+
+Prebuilt installers are attached to [GitHub Releases](https://github.com/asimkaya/pier-rest-client/releases) when you publish a version tag (`v0.1.0`, etc.). The NSIS `.exe` registers an uninstaller in **Settings → Apps** (or **Control Panel → Programs**).
+
+Without [code signing](https://v2.tauri.app/distribute/sign/windows/), SmartScreen may warn on first download; users can still run the app after “More info” → “Run anyway”.
+
+**Try the CI build without a release:** in GitHub, open **Actions → Windows x64 (NSIS) → Run workflow**, then download **Pier-Windows-x64-setup** from the run’s Artifacts.
+
 ## Getting started
 
 ```bash
