@@ -13,11 +13,12 @@ import {
   renameRequestInCollection,
 } from "~/features/collections/collection-store";
 import {
+  addSavedRequest,
   removeSavedRequest,
   renameSavedRequest,
 } from "~/features/collections/saved-requests-store";
 import { cn, getMethodColor, generateId } from "~/lib/utils";
-import type { SavedRequest } from "~/lib/types";
+import type { Collection, SavedRequest } from "~/lib/types";
 import { createDefaultRequest } from "~/lib/types";
 
 interface ContextMenu {
@@ -60,6 +61,18 @@ function DndDragGhost(props: {
       )}
     </Show>
   );
+}
+
+function collectionHasContents(c: Collection): boolean {
+  if (c.requests.length > 0) return true;
+  for (const f of c.folders) {
+    if (f.requests.length > 0) return true;
+  }
+  return c.folders.length > 0;
+}
+
+function hasDirtyTabForRequest(requestId: string): boolean {
+  return state.tabs.some((t) => t.isDirty && t.savedLocation?.requestId === requestId);
 }
 
 function parseDropAttr(v: string): { collectionId: string; folderId: string | null } | null {
@@ -137,6 +150,22 @@ export function CollectionTree() {
     await createCollection(name);
     setNewCollectionName("");
     setCreating(false);
+  }
+
+  async function createStandaloneSavedRequest() {
+    const req = createDefaultRequest();
+    const requestId = generateId();
+    const saved: SavedRequest = {
+      id: requestId,
+      name: "New Request",
+      method: req.method,
+      url: req.url,
+      headers: req.headers as any,
+      queryParams: req.queryParams as any,
+      body: req.body,
+      auth: req.auth,
+    };
+    await addSavedRequest(saved);
   }
 
   function openSavedRequest(req: SavedRequest, collectionId?: string, folderId?: string) {
@@ -385,7 +414,16 @@ export function CollectionTree() {
           class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
-            removeRequestFromCollection(collectionId, req.id);
+            if (hasDirtyTabForRequest(req.id)) {
+              if (
+                !window.confirm(
+                  `Remove "${req.name}" from this collection? Unsaved changes in an open tab will be lost.`
+                )
+              ) {
+                return;
+              }
+            }
+            void removeRequestFromCollection(collectionId, req.id);
           }}
           aria-label="Remove request"
         >
@@ -474,7 +512,16 @@ export function CollectionTree() {
               class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover/req:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
-                removeSavedRequest(req.id);
+                if (hasDirtyTabForRequest(req.id)) {
+                  if (
+                    !window.confirm(
+                      `Delete "${req.name}"? Unsaved changes in an open tab will be lost.`
+                    )
+                  ) {
+                    return;
+                  }
+                }
+                void removeSavedRequest(req.id);
               }}
               aria-label="Delete"
             >
@@ -582,14 +629,17 @@ export function CollectionTree() {
       <Show
         when={state.collections.length > 0 || state.savedRequests.length > 0}
         fallback={
-          <Show when={state.savedRequests.length === 0}>
-            <div class="flex flex-col items-center gap-2 py-8 text-center">
-              <p class="text-xs text-muted-foreground">No collections yet</p>
-              <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
+          <div class="flex flex-col items-center gap-3 py-8 text-center">
+            <p class="text-xs text-muted-foreground">No saved requests or collections yet</p>
+            <div class="flex flex-wrap justify-center gap-2">
+              {/* <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
                 New Collection
+              </Button> */}
+              <Button size="sm" onClick={() => void createStandaloneSavedRequest()}>
+                New Request
               </Button>
             </div>
-          </Show>
+          </div>
         }
       >
         <div class="mb-2">
@@ -609,7 +659,7 @@ export function CollectionTree() {
                 class={cn(
                   "group flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent cursor-pointer transition-[box-shadow,background-color] duration-150",
                   dropHighlight() === `c:${collection.id}` &&
-                    "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
+                  "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                 )}
                 data-volt-drop={`c:${collection.id}`}
                 onClick={() => toggleExpanded(collection.id)}
@@ -645,7 +695,16 @@ export function CollectionTree() {
                   class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
-                    deleteCollection(collection.id);
+                    if (collectionHasContents(collection)) {
+                      if (
+                        !window.confirm(
+                          `Delete "${collection.name}"? It contains folders and/or requests. This cannot be undone.`
+                        )
+                      ) {
+                        return;
+                      }
+                    }
+                    void deleteCollection(collection.id);
                   }}
                   aria-label="Delete collection"
                 >
@@ -665,7 +724,7 @@ export function CollectionTree() {
                           class={cn(
                             "group flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent cursor-pointer transition-[box-shadow,background-color] duration-150",
                             dropHighlight() === `f:${collection.id}:${folder.id}` &&
-                              "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
+                            "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                           )}
                           data-volt-drop={`f:${collection.id}:${folder.id}`}
                           onClick={() => toggleExpanded(folder.id)}
