@@ -44,7 +44,7 @@ function DndDragGhost(props: {
         <Portal mount={document.body}>
           <div
             ref={(el) => props.onGhostRef(el)}
-            class="volt-dnd-ghost pointer-events-none fixed left-0 top-0 z-[10060] max-w-[min(240px,calc(100vw-24px))] rounded-md border border-border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-lg will-change-transform"
+            class="pier-dnd-ghost pointer-events-none fixed left-0 top-0 z-[10060] max-w-[min(240px,calc(100vw-24px))] rounded-md border border-border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-lg will-change-transform"
             style={{ transform: "translate(12px, 12px)" }}
             aria-hidden="true"
           >
@@ -335,9 +335,9 @@ export function CollectionTree() {
     const stack = document.elementsFromPoint(clientX, clientY);
     for (const node of stack) {
       if (!(node instanceof Element)) continue;
-      const zone = node.closest("[data-volt-drop]");
+      const zone = node.closest("[data-pier-drop]");
       if (!(zone instanceof HTMLElement)) continue;
-      const v = zone.getAttribute("data-volt-drop");
+      const v = zone.getAttribute("data-pier-drop");
       if (!v) continue;
       const parsed = parseDropAttr(v);
       if (parsed) return { raw: v, ...parsed };
@@ -487,7 +487,7 @@ export function CollectionTree() {
         )}
       >
         <div
-          class="volt-dnd-grip shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
+          class="pier-dnd-grip shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
           onPointerDown={(e) => onGripPointerDown(e, req)}
           onPointerMove={onGripPointerMove}
           onPointerUp={onGripPointerUp}
@@ -699,7 +699,7 @@ export function CollectionTree() {
                   dropHighlight() === `c:${collection.id}` &&
                   "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                 )}
-                data-volt-drop={`c:${collection.id}`}
+                data-pier-drop={`c:${collection.id}`}
                 onClick={() => {
                   if (renamingCollectionId() === collection.id) return;
                   toggleExpanded(collection.id);
@@ -809,7 +809,7 @@ export function CollectionTree() {
                             dropHighlight() === `f:${collection.id}:${folder.id}` &&
                             "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                           )}
-                          data-volt-drop={`f:${collection.id}:${folder.id}`}
+                          data-pier-drop={`f:${collection.id}:${folder.id}`}
                           onClick={() => toggleExpanded(folder.id)}
                           onContextMenu={(e) => handleContextMenu(e, collection.id, folder.id)}
                         >
@@ -921,7 +921,7 @@ export function CollectionTree() {
               class="fixed inset-0 z-[10040] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
               role="dialog"
               aria-modal="true"
-              aria-labelledby="volt-move-dialog-title"
+              aria-labelledby="pier-move-dialog-title"
               onClick={() => {
                 setMoveDialogRequest(null);
                 setMoveDialogSelectedKey(null);
@@ -937,7 +937,7 @@ export function CollectionTree() {
                   }
                 }}
               >
-                <h2 id="volt-move-dialog-title" class="text-sm font-semibold text-foreground">
+                <h2 id="pier-move-dialog-title" class="text-sm font-semibold text-foreground">
                   Move request
                 </h2>
                 <p class="mt-1 truncate text-xs text-muted-foreground">“{req().name}”</p>
@@ -1034,7 +1034,7 @@ export function CollectionTree() {
               class="fixed inset-0 z-[10041] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
               role="dialog"
               aria-modal="true"
-              aria-labelledby="volt-delete-collection-title"
+              aria-labelledby="pier-delete-collection-title"
               onClick={() => setPendingDeleteCollection(null)}
             >
               <div
@@ -1044,7 +1044,7 @@ export function CollectionTree() {
                   if (e.key === "Escape") setPendingDeleteCollection(null);
                 }}
               >
-                <h2 id="volt-delete-collection-title" class="text-sm font-semibold text-foreground">
+                <h2 id="pier-delete-collection-title" class="text-sm font-semibold text-foreground">
                   Delete collection
                 </h2>
                 <p class="mt-2 text-sm text-muted-foreground">
@@ -1081,7 +1081,7 @@ export function CollectionTree() {
               class="fixed inset-0 z-[10042] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
               role="dialog"
               aria-modal="true"
-              aria-labelledby="volt-request-destructive-title"
+              aria-labelledby="pier-request-destructive-title"
               onClick={() => setPendingRequestDestructive(null)}
             >
               <div
@@ -1091,7 +1091,7 @@ export function CollectionTree() {
                   if (e.key === "Escape") setPendingRequestDestructive(null);
                 }}
               >
-                <h2 id="volt-request-destructive-title" class="text-sm font-semibold text-foreground">
+                <h2 id="pier-request-destructive-title" class="text-sm font-semibold text-foreground">
                   {isRemove() ? "Remove request" : "Delete request"}
                 </h2>
                 <p class="mt-2 text-sm text-muted-foreground">

@@ -165,7 +165,7 @@ export function RequestBuilder() {
 
       <div class="flex-1 overflow-y-auto p-2">
         <Show when={activeSection() === "params"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <KeyValueEditor
               items={tab()?.request.queryParams ?? []}
               onChange={(items: KeyValue[]) => updateRequest({ queryParams: items })}
@@ -176,7 +176,7 @@ export function RequestBuilder() {
         </Show>
 
         <Show when={activeSection() === "headers"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <KeyValueEditor
               items={tab()?.request.headers ?? []}
               onChange={(items: KeyValue[]) => updateRequest({ headers: items })}
@@ -187,7 +187,7 @@ export function RequestBuilder() {
         </Show>
 
         <Show when={activeSection() === "body"}>
-          <div class="volt-tab-panel-in space-y-2">
+          <div class="pier-tab-panel-in space-y-2">
             <div class="flex gap-1">
               {BODY_TYPES.map((bt) => (
                 <button
@@ -242,7 +242,7 @@ export function RequestBuilder() {
         </Show>
 
         <Show when={activeSection() === "auth"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <AuthEditor
               auth={tab()?.request.auth ?? {
                 type: "none",

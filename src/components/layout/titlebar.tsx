@@ -44,7 +44,7 @@ export function Titlebar() {
           />
         </svg>
         <span class="text-xs font-semibold tracking-wide text-foreground/80">
-          Volt
+          Pier
         </span>
       </div>
 

@@ -53,19 +53,19 @@ export function Sidebar() {
 
       <div class="flex-1 overflow-y-auto p-2">
         <Show when={state.sidebarView === "collections"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <CollectionTree />
           </div>
         </Show>
 
         <Show when={state.sidebarView === "history"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <HistoryPanel />
           </div>
         </Show>
 
         <Show when={state.sidebarView === "environments"}>
-          <div class="volt-tab-panel-in">
+          <div class="pier-tab-panel-in">
             <EnvironmentManager />
           </div>
         </Show>

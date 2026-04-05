@@ -1,5 +1,5 @@
 {
-  "name": "volt-api-client",
+  "name": "pier-api-client",
   "version": "0.1.0",
   "description": "A local-first, privacy-first, ultra-fast REST API client for developers.",
   "type": "module",

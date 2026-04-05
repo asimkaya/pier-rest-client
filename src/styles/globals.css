@@ -119,12 +119,12 @@ input, textarea {
 }
 
 /* Pointer-based drag handle (HTML5 DnD is flaky in Tauri WebView2) */
-.volt-dnd-grip {
+.pier-dnd-grip {
   touch-action: none;
 }
 
 /* Floating chip while moving a saved request (no keyframe loop — position updates every frame) */
-.volt-dnd-ghost {
+.pier-dnd-ghost {
   box-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.2),
     0 4px 6px -4px rgb(0 0 0 / 0.15);
@@ -176,7 +176,7 @@ input, textarea {
   animation: scale-in 150ms ease-out;
 }
 
-@keyframes volt-request-land {
+@keyframes pier-request-land {
   0% {
     opacity: 0;
     transform: translateY(-6px);
@@ -188,10 +188,10 @@ input, textarea {
 }
 
 .request-land-enter {
-  animation: volt-request-land 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: pier-request-land 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes volt-drop-pulse {
+@keyframes pier-drop-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.35);
   }
@@ -201,10 +201,10 @@ input, textarea {
 }
 
 .drop-target-active {
-  animation: volt-drop-pulse 0.55s ease-out;
+  animation: pier-drop-pulse 0.55s ease-out;
 }
 
-@keyframes volt-tab-panel-in {
+@keyframes pier-tab-panel-in {
   from {
     opacity: 0;
     transform: translateY(3px);
@@ -215,8 +215,8 @@ input, textarea {
   }
 }
 
-.volt-tab-panel-in {
-  animation: volt-tab-panel-in 0.22s ease-out;
+.pier-tab-panel-in {
+  animation: pier-tab-panel-in 0.22s ease-out;
 }
 
 ::selection {
@@ -229,7 +229,7 @@ code, pre, .font-mono {
 }
 
 /* highlight.js — JSON response (Pretty), matches app dark/light */
-.volt-json-response code.hljs {
+.pier-json-response code.hljs {
   display: block;
   width: 100%;
   padding: 0;
@@ -238,64 +238,64 @@ code, pre, .font-mono {
   color: var(--fg);
 }
 
-.volt-json-response .hljs-attr {
+.pier-json-response .hljs-attr {
   color: #a5b4fc;
 }
 
-.volt-json-response .hljs-string {
+.pier-json-response .hljs-string {
   color: #86efac;
 }
 
-.volt-json-response .hljs-number {
+.pier-json-response .hljs-number {
   color: #fcd34d;
 }
 
-.volt-json-response .hljs-literal {
+.pier-json-response .hljs-literal {
   color: #67e8f9;
 }
 
-.volt-json-response .hljs-punctuation {
+.pier-json-response .hljs-punctuation {
   color: var(--muted-fg);
 }
 
-:root[data-theme="light"] .volt-json-response .hljs-attr {
+:root[data-theme="light"] .pier-json-response .hljs-attr {
   color: #4f46e5;
 }
 
-:root[data-theme="light"] .volt-json-response .hljs-string {
+:root[data-theme="light"] .pier-json-response .hljs-string {
   color: #15803d;
 }
 
-:root[data-theme="light"] .volt-json-response .hljs-number {
+:root[data-theme="light"] .pier-json-response .hljs-number {
   color: #b45309;
 }
 
-:root[data-theme="light"] .volt-json-response .hljs-literal {
+:root[data-theme="light"] .pier-json-response .hljs-literal {
   color: #0e7490;
 }
 
-:root[data-theme="light"] .volt-json-response .hljs-punctuation {
+:root[data-theme="light"] .pier-json-response .hljs-punctuation {
   color: var(--muted-fg);
 }
 
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme]) .volt-json-response .hljs-attr {
+  :root:not([data-theme]) .pier-json-response .hljs-attr {
     color: #4f46e5;
   }
 
-  :root:not([data-theme]) .volt-json-response .hljs-string {
+  :root:not([data-theme]) .pier-json-response .hljs-string {
     color: #15803d;
   }
 
-  :root:not([data-theme]) .volt-json-response .hljs-number {
+  :root:not([data-theme]) .pier-json-response .hljs-number {
     color: #b45309;
   }
 
-  :root:not([data-theme]) .volt-json-response .hljs-literal {
+  :root:not([data-theme]) .pier-json-response .hljs-literal {
     color: #0e7490;
   }
 
-  :root:not([data-theme]) .volt-json-response .hljs-punctuation {
+  :root:not([data-theme]) .pier-json-response .hljs-punctuation {
     color: var(--muted-fg);
   }
 }

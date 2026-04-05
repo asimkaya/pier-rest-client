@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for Volt API Client",
+  "description": "Default capabilities for Pier",
   "windows": ["main"],
   "permissions": [
     "core:default",

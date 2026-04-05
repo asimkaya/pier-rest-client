@@ -196,19 +196,19 @@ export function ResponseViewer() {
             <Show
               when={bodyView() === "pretty"}
               fallback={
-                <pre class="volt-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
+                <pre class="pier-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
                   {response()!.body}
                 </pre>
               }
             >
-              <pre class="volt-json-response volt-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all">
+              <pre class="pier-json-response pier-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all">
                 <code class="language-json hljs" innerHTML={prettyJsonHtml()} />
               </pre>
             </Show>
           </Show>
 
           <Show when={activeTab() === "headers"}>
-            <div class="volt-tab-panel-in p-2">
+            <div class="pier-tab-panel-in p-2">
               <table class="w-full text-xs">
                 <thead>
                   <tr class="border-b text-left text-muted-foreground">

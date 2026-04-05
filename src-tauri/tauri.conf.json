@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Volt API Client",
+  "productName": "Pier",
   "version": "0.1.0",
-  "identifier": "com.volt.api-client",
+  "identifier": "com.pier.api-client",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Volt API Client",
+        "title": "Pier",
         "label": "main",
         "width": 1280,
         "height": 800,

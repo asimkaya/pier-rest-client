@@ -1,4 +1,4 @@
-# Volt API Client
+# Pier
 
 A **local-first**, **privacy-first** REST API desktop client for Windows, macOS, and Linux. Built with [Tauri v2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/). No account required — collections, environments, and history stay on your machine as JSON files.
 
@@ -57,7 +57,6 @@ bun run format
 ## Documentation
 
 - [`DEVELOPMENT.md`](DEVELOPMENT.md) — architecture, data layout, UI patterns (modals, tabs, stores), and conventions for contributors
-- [`prd.md`](prd.md) — original product requirements and roadmap ideas
 
 ## Contributing
 
