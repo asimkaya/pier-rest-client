@@ -227,3 +227,75 @@ input, textarea {
 code, pre, .font-mono {
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
 }
+
+/* highlight.js — JSON response (Pretty), matches app dark/light */
+.volt-json-response code.hljs {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--fg);
+}
+
+.volt-json-response .hljs-attr {
+  color: #a5b4fc;
+}
+
+.volt-json-response .hljs-string {
+  color: #86efac;
+}
+
+.volt-json-response .hljs-number {
+  color: #fcd34d;
+}
+
+.volt-json-response .hljs-literal {
+  color: #67e8f9;
+}
+
+.volt-json-response .hljs-punctuation {
+  color: var(--muted-fg);
+}
+
+:root[data-theme="light"] .volt-json-response .hljs-attr {
+  color: #4f46e5;
+}
+
+:root[data-theme="light"] .volt-json-response .hljs-string {
+  color: #15803d;
+}
+
+:root[data-theme="light"] .volt-json-response .hljs-number {
+  color: #b45309;
+}
+
+:root[data-theme="light"] .volt-json-response .hljs-literal {
+  color: #0e7490;
+}
+
+:root[data-theme="light"] .volt-json-response .hljs-punctuation {
+  color: var(--muted-fg);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .volt-json-response .hljs-attr {
+    color: #4f46e5;
+  }
+
+  :root:not([data-theme]) .volt-json-response .hljs-string {
+    color: #15803d;
+  }
+
+  :root:not([data-theme]) .volt-json-response .hljs-number {
+    color: #b45309;
+  }
+
+  :root:not([data-theme]) .volt-json-response .hljs-literal {
+    color: #0e7490;
+  }
+
+  :root:not([data-theme]) .volt-json-response .hljs-punctuation {
+    color: var(--muted-fg);
+  }
+}

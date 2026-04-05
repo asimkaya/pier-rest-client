@@ -1,7 +1,8 @@
-import { createSignal, Show, For } from "solid-js";
+import { createSignal, Show, For, createMemo } from "solid-js";
 import { getActiveTab } from "~/store/app-store";
 import { Badge } from "~/components/ui/badge";
-import { cn, formatBytes, formatDuration, getStatusColor } from "~/lib/utils";
+import { cn, formatBytes, formatDuration } from "~/lib/utils";
+import { highlightJson } from "~/lib/json-highlight";
 
 type ResponseTab = "body" | "headers";
 type BodyView = "pretty" | "raw";
@@ -13,7 +14,7 @@ export function ResponseViewer() {
   const tab = () => getActiveTab();
   const response = () => tab()?.response;
 
-  function prettyJson(): string {
+  const formattedJsonBody = createMemo(() => {
     const body = response()?.body;
     if (!body) return "";
     try {
@@ -21,7 +22,9 @@ export function ResponseViewer() {
     } catch {
       return body;
     }
-  }
+  });
+
+  const prettyJsonHtml = createMemo(() => highlightJson(formattedJsonBody()));
 
   function getStatusVariant(status: number) {
     if (status >= 200 && status < 300) return "success" as const;
@@ -135,9 +138,18 @@ export function ResponseViewer() {
 
         <div class="flex-1 overflow-auto">
           <Show when={activeTab() === "body"}>
-            <pre class="volt-tab-panel-in p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
-              {bodyView() === "pretty" ? prettyJson() : response()!.body}
-            </pre>
+            <Show
+              when={bodyView() === "pretty"}
+              fallback={
+                <pre class="volt-tab-panel-in p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
+                  {response()!.body}
+                </pre>
+              }
+            >
+              <pre class="volt-json-response volt-tab-panel-in p-3 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all">
+                <code class="language-json hljs" innerHTML={prettyJsonHtml()} />
+              </pre>
+            </Show>
           </Show>
 
           <Show when={activeTab() === "headers"}>
