@@ -13,13 +13,10 @@ import {
   removeRequestFromCollection,
   renameRequestInCollection,
 } from "~/features/collections/collection-store";
-import {
-  addSavedRequest,
-  removeSavedRequest,
-  renameSavedRequest,
-} from "~/features/collections/saved-requests-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
+import { removeSavedRequest, renameSavedRequest } from "~/features/collections/saved-requests-store";
 import { cn, getMethodColor, generateId } from "~/lib/utils";
-import type { Collection, SavedRequest } from "~/lib/types";
+import type { Collection, SavedRequest, Tab } from "~/lib/types";
 import { createDefaultRequest } from "~/lib/types";
 
 interface ContextMenu {
@@ -72,8 +69,31 @@ function collectionHasContents(c: Collection): boolean {
   return c.folders.length > 0;
 }
 
-function hasDirtyTabForRequest(requestId: string): boolean {
-  return state.tabs.some((t) => t.isDirty && t.savedLocation?.requestId === requestId);
+function tabRequestDiffersFromSaved(tab: Tab, saved: SavedRequest): boolean {
+  if (tab.name !== saved.name) return true;
+  const a = {
+    method: tab.request.method,
+    url: tab.request.url,
+    headers: tab.request.headers,
+    queryParams: tab.request.queryParams,
+    body: tab.request.body,
+    auth: tab.request.auth,
+  };
+  const b = {
+    method: saved.method,
+    url: saved.url,
+    headers: saved.headers,
+    queryParams: saved.queryParams,
+    body: saved.body,
+    auth: saved.auth,
+  };
+  return JSON.stringify(a) !== JSON.stringify(b);
+}
+
+function openTabHasUnsavedEdits(requestId: string, saved: SavedRequest): boolean {
+  const tab = state.tabs.find((t) => t.savedLocation?.requestId === requestId);
+  if (!tab) return false;
+  return tabRequestDiffersFromSaved(tab, saved);
 }
 
 function parseDropAttr(v: string): { collectionId: string; folderId: string | null } | null {
@@ -110,6 +130,11 @@ export function CollectionTree() {
     id: string;
     name: string;
   } | null>(null);
+  const [pendingRequestDestructive, setPendingRequestDestructive] = createSignal<
+    | { kind: "remove"; collectionId: string; requestId: string; name: string; warnUnsaved: boolean }
+    | { kind: "delete"; requestId: string; name: string; warnUnsaved: boolean }
+    | null
+  >(null);
 
   let expandTimer: number | undefined;
   let lastAutoExpandKey: string | null = null;
@@ -157,22 +182,6 @@ export function CollectionTree() {
     await createCollection(name);
     setNewCollectionName("");
     setCreating(false);
-  }
-
-  async function createStandaloneSavedRequest() {
-    const req = createDefaultRequest();
-    const requestId = generateId();
-    const saved: SavedRequest = {
-      id: requestId,
-      name: "New Request",
-      method: req.method,
-      url: req.url,
-      headers: req.headers as any,
-      queryParams: req.queryParams as any,
-      body: req.body,
-      auth: req.auth,
-    };
-    await addSavedRequest(saved);
   }
 
   function openSavedRequest(req: SavedRequest, collectionId?: string, folderId?: string) {
@@ -444,19 +453,17 @@ export function CollectionTree() {
         </span>
         <span class="flex-1 truncate text-muted-foreground text-left">{req.name}</span>
         <button
+          type="button"
           class="shrink-0 opacity-0 group-hover/req:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
-            if (hasDirtyTabForRequest(req.id)) {
-              if (
-                !window.confirm(
-                  `Remove "${req.name}" from this collection? Unsaved changes in an open tab will be lost.`
-                )
-              ) {
-                return;
-              }
-            }
-            void removeRequestFromCollection(collectionId, req.id);
+            setPendingRequestDestructive({
+              kind: "remove",
+              collectionId,
+              requestId: req.id,
+              name: req.name,
+              warnUnsaved: openTabHasUnsavedEdits(req.id, req),
+            });
           }}
           aria-label="Remove request"
         >
@@ -547,16 +554,12 @@ export function CollectionTree() {
               class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover/req:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
-                if (hasDirtyTabForRequest(req.id)) {
-                  if (
-                    !window.confirm(
-                      `Delete "${req.name}"? Unsaved changes in an open tab will be lost.`
-                    )
-                  ) {
-                    return;
-                  }
-                }
-                void removeSavedRequest(req.id);
+                setPendingRequestDestructive({
+                  kind: "delete",
+                  requestId: req.id,
+                  name: req.name,
+                  warnUnsaved: openTabHasUnsavedEdits(req.id, req),
+                });
               }}
               aria-label="Delete"
             >
@@ -670,7 +673,7 @@ export function CollectionTree() {
               {/* <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
                 New Collection
               </Button> */}
-              <Button size="sm" onClick={() => void createStandaloneSavedRequest()}>
+              <Button size="sm" onClick={() => void createNewRequestTab()}>
                 New Request
               </Button>
             </div>
@@ -1061,6 +1064,69 @@ export function CollectionTree() {
                     }}
                   >
                     Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        }}
+      </Show>
+
+      <Show when={pendingRequestDestructive()}>
+        {(getP) => {
+          const p = () => getP()!;
+          const isRemove = () => p().kind === "remove";
+          return (
+            <div
+              class="fixed inset-0 z-[10042] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="volt-request-destructive-title"
+              onClick={() => setPendingRequestDestructive(null)}
+            >
+              <div
+                class="w-full max-w-md rounded-lg border border-border bg-popover p-4 shadow-xl animate-scale-in"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setPendingRequestDestructive(null);
+                }}
+              >
+                <h2 id="volt-request-destructive-title" class="text-sm font-semibold text-foreground">
+                  {isRemove() ? "Remove request" : "Delete request"}
+                </h2>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  {(() => {
+                    const x = p();
+                    const tabOpen = state.tabs.some((t) => t.savedLocation?.requestId === x.requestId);
+                    if (x.warnUnsaved) {
+                      return isRemove()
+                        ? `Remove "${x.name}" from this collection? Unsaved changes in the open tab will be lost.`
+                        : `Delete "${x.name}"? Unsaved changes in the open tab will be lost.`;
+                    }
+                    const base = isRemove()
+                      ? `Remove "${x.name}" from this collection? This cannot be undone.`
+                      : `Delete "${x.name}"? This cannot be undone.`;
+                    return tabOpen ? `${base} The open tab will be closed.` : base;
+                  })()}
+                </p>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setPendingRequestDestructive(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const x = p();
+                      if (x.kind === "remove") {
+                        void removeRequestFromCollection(x.collectionId, x.requestId);
+                      } else {
+                        void removeSavedRequest(x.requestId);
+                      }
+                      setPendingRequestDestructive(null);
+                    }}
+                  >
+                    {isRemove() ? "Remove" : "Delete"}
                   </Button>
                 </div>
               </div>

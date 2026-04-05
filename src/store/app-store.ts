@@ -64,6 +64,13 @@ export function closeTab(id: string) {
   );
 }
 
+export function closeTabsForRequestId(requestId: string) {
+  const ids = state.tabs.filter((t) => t.savedLocation?.requestId === requestId).map((t) => t.id);
+  for (const tabId of ids) {
+    closeTab(tabId);
+  }
+}
+
 export function setActiveTab(id: string) {
   setState("activeTabId", id);
 }

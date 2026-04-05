@@ -1,4 +1,4 @@
-import { setCollections, state } from "~/store/app-store";
+import { setCollections, state, closeTabsForRequestId } from "~/store/app-store";
 import { readJsonFile, writeJsonFile, deleteJsonFile, listJsonFiles } from "~/lib/tauri";
 import type { Collection, SavedRequest, CollectionFolder } from "~/lib/types";
 import { generateId } from "~/lib/utils";
@@ -90,6 +90,7 @@ export async function removeRequestFromCollection(
 
   await writeJsonFile(collectionPath(collectionId), updated);
   await loadCollections();
+  closeTabsForRequestId(requestId);
 }
 
 export async function addFolderToCollection(

@@ -1,4 +1,4 @@
-import { setSavedRequests, state } from "~/store/app-store";
+import { setSavedRequests, state, closeTabsForRequestId } from "~/store/app-store";
 import { readJsonFile, writeJsonFile } from "~/lib/tauri";
 import type { SavedRequest } from "~/lib/types";
 
@@ -33,6 +33,7 @@ export async function updateSavedRequest(id: string, updates: Partial<SavedReque
 }
 
 export async function removeSavedRequest(id: string): Promise<void> {
+  closeTabsForRequestId(id);
   setSavedRequests(state.savedRequests.filter((r) => r.id !== id));
   await persist();
 }
