@@ -1,4 +1,4 @@
-# Volt API Client — Development Status & Architecture
+# Pier — Development Status & Architecture
 
 > **Last updated:** 2026-04-05
 > **Version:** 0.1.0 (pre-release, active development)
@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**Volt API Client** is a local-first, privacy-first, ultra-fast REST API desktop application built with **Tauri v2** (Rust backend) and **SolidJS** (TypeScript frontend). It runs natively on Windows, macOS, and Linux. All data is stored locally as JSON files — no cloud, no accounts, no telemetry.
+**Pier** is a local-first, privacy-first, ultra-fast REST API desktop application built with **Tauri v2** (Rust backend) and **SolidJS** (TypeScript frontend). It runs natively on Windows, macOS, and Linux. All data is stored locally as JSON files — no cloud, no accounts, no telemetry.
 
 Think of it as a lightweight, open-source alternative to Postman/Insomnia with a focus on speed and privacy.
 
@@ -86,7 +86,7 @@ Think of it as a lightweight, open-source alternative to Postman/Insomnia with a
 │                   Tauri Window                       │
 │  ┌───────────────────────────────────────────────┐  │
 │  │              Custom Titlebar                   │  │
-│  │  [Logo] [Volt]    [Env▾] [⚙ Ctrl+K]  [─][□][✕]│  │
+│  │  [Logo] [Pier]   [Env▾] [⚙ Ctrl+K]  [─][□][✕]│  │
 │  ├────────┬──────────────────────────────────────┤  │
 │  │Sidebar │  Tab Bar                              │  │
 │  │        ├──────────────────────────────────────┤  │
@@ -363,7 +363,7 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 - `tab-bar.tsx` commit rename calls **`renameTabAndPersist`** (`rename-tab-persist.ts`): updates tab title then `renameSavedRequest` or `renameRequestInCollection` so the sidebar and JSON files match without Ctrl+S
 
 ### 8.5 Response viewer (Body)
-- **Pretty**: `JSON.stringify(JSON.parse(body), null, 2)` when valid JSON; else raw string; HTML via `highlightJson()` + `.volt-json-response` / `.hljs-*` theme in `globals.css` (dark, `data-theme="light"`, system)
+- **Pretty**: `JSON.stringify(JSON.parse(body), null, 2)` when valid JSON; else raw string; HTML via `highlightJson()` + `.pier-json-response` / `.hljs-*` theme in `globals.css` (dark, `data-theme="light"`, system)
 - **Raw**: response body string only
 - **Copy** (Body tab only): fixed top-right; copies Pretty formatted text or Raw body; short transition to check icon (`text-success`), then reset (~1.5s)
 
