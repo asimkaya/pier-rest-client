@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Debug
 debug/
+
+# Local-only (not published)
+prd.md

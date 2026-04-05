@@ -1,73 +1,71 @@
 # Volt API Client
 
-A **local-first**, **privacy-first**, **ultra-fast** REST API client for developers.
-
-Volt is a desktop application built with [Tauri](https://tauri.app/) and [SolidJS](https://www.solidjs.com/) that lets you build, test, and manage API requests — all without an account, with your data stored entirely on your machine.
+A **local-first**, **privacy-first** REST API desktop client for Windows, macOS, and Linux. Built with [Tauri v2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/). No account required — collections, environments, and history stay on your machine as JSON files.
 
 ## Features
 
-- **Request Builder** — Compose HTTP requests with method, URL, headers, query params, and body (JSON, raw, form-data)
-- **Authentication** — Bearer Token, Basic Auth, API Key support
-- **Response Viewer** — Pretty JSON, raw text, and response headers with timing & size info
-- **Multi-Tab** — Work on multiple requests simultaneously
-- **Collections** — Organize your requests into folders and collections
-- **Environments** — Define variables (`{{base_url}}`, `{{token}}`) and switch between environments
-- **History** — Automatically log every request for quick replay
-- **Command Palette** — `Ctrl+K` to search and execute actions instantly
-- **Dark/Light Theme** — Follows your system preference with manual override
+- **HTTP requests** — Methods, URL, query params, headers, body (JSON, raw, form-data)
+- **Auth** — None, Bearer, Basic, API Key (header or query)
+- **Response** — Pretty JSON with syntax highlighting, raw body, headers; status, timing, size; copy body (pretty or raw)
+- **Tabs** — Multiple requests at once; inline rename; new tabs become saved standalone requests automatically
+- **Collections** — Folders and requests; context menu; drag standalone requests into collections
+- **Environments** — Variables with `{{name}}` interpolation on URL, headers, body, and auth
+- **History** — Recent requests with quick re-open
+- **Command palette** — `Ctrl+K` for actions and navigation
+- **Themes** — Dark, light, or follow the system
 
-## Tech Stack
+## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Tauri v2 (Rust) |
-| Frontend | SolidJS + TypeScript |
-| Styling | TailwindCSS v4 |
-| UI Components | Kobalte (headless) |
-| HTTP Engine | Rust (reqwest) |
-| Storage | JSON files (local) |
-| Package Manager | Bun |
+| Layer | Stack |
+|--------|--------|
+| Shell | Tauri v2, Rust |
+| UI | SolidJS, TypeScript, Tailwind CSS v4 |
+| HTTP | reqwest (Rust; no browser CORS) |
+| Data | JSON files in the app data directory |
+| Tooling | Bun, Vite |
 
 ## Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) (1.77+)
-- [Bun](https://bun.sh/) (1.0+)
-- Platform-specific dependencies for [Tauri](https://v2.tauri.app/start/prerequisites/)
+- [Rust](https://www.rust-lang.org/tools/install) (stable)
+- [Bun](https://bun.sh/)
+- [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
 
-## Getting Started
+## Getting started
 
 ```bash
-# Clone the repository
-git clone https://github.com/nicepkg/volt.git
-cd volt
+git clone https://github.com/<your-org>/<your-repo>.git
+cd <your-repo>
 
-# Install dependencies
 bun install
-
-# Run in development mode
 bun run tauri dev
+```
 
-# Build for production
+**Production build**
+
+```bash
 bun run tauri build
 ```
 
-## Project Structure
+**Other scripts**
 
+```bash
+./node_modules/.bin/tsc --noEmit   # typecheck
+bun run lint
+bun run format
 ```
-├── src/                  # SolidJS frontend
-│   ├── components/ui/    # Reusable UI components
-│   ├── features/         # Feature modules
-│   ├── lib/              # Utilities and types
-│   └── styles/           # Global styles
-├── src-tauri/            # Rust backend
-│   ├── src/commands/     # Tauri commands (HTTP, storage)
-│   └── src/models/       # Data models
-└── ...config files
-```
+
+## Documentation
+
+- [`DEVELOPMENT.md`](DEVELOPMENT.md) — architecture, data layout, UI patterns (modals, tabs, stores), and conventions for contributors
+- [`prd.md`](prd.md) — original product requirements and roadmap ideas
+
+## Contributing
+
+Issues and pull requests are welcome. For larger changes, skim `DEVELOPMENT.md` first so patches match existing patterns (Solid stores, Tauri commands, modal UX).
 
 ## Privacy
 
-Volt stores all data locally on your machine. No accounts, no cloud sync, no telemetry. Your API keys and tokens never leave your device.
+No cloud sync, no telemetry, no sign-in. Credentials and collections live only in your local app data folder.
 
 ## License
 
