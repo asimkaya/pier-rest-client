@@ -34,8 +34,15 @@ export function Titlebar() {
   return (
     <div class="flex h-9 shrink-0 items-center border-b bg-background select-none">
       <div class="flex min-h-9 min-w-0 flex-1 items-center gap-2 pl-3" data-tauri-drag-region>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-primary" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M12 15h-6.5a2.5 2.5 0 1 1 0 -5h.5" /><path d="M15 12v6.5a2.5 2.5 0 1 1 -5 0v-.5" /><path d="M12 9h6.5a2.5 2.5 0 1 1 0 5h-.5" /><path d="M9 12v-6.5a2.5 2.5 0 0 1 5 0v.5" /></svg>
-
+        <img
+          src="/pier-mark.png"
+          alt=""
+          width={18}
+          height={18}
+          class="shrink-0 object-contain"
+          draggable={false}
+          aria-hidden="true"
+        />
         <span class="text-xs font-semibold tracking-wide text-foreground/80">
           Pier
         </span>

@@ -71,14 +71,15 @@ export function ResponseViewer() {
       <Show when={!tab()?.isLoading && !response()}>
         <div class="flex flex-1 items-center justify-center">
           <div class="flex flex-col items-center gap-3 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="text-muted-foreground/30">
-              <path
-                d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-                stroke="currentColor"
-                stroke-width="1"
-                stroke-linejoin="round"
-              />
-            </svg>
+            <img
+              src="/apple-touch-icon.png"
+              alt=""
+              width={48}
+              height={48}
+              class="opacity-40"
+              draggable={false}
+              aria-hidden="true"
+            />
             <div>
               <p class="text-sm font-medium text-muted-foreground">No response yet</p>
               <p class="mt-1 text-xs text-muted-foreground/60">

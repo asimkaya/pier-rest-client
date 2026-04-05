@@ -33,7 +33,7 @@ Think of it as a lightweight, open-source alternative to Postman/Insomnia with a
 | Accessibility | Partial | ARIA labels present, focus management needs refinement |
 | Tests | Not started | No unit or integration tests yet |
 | CI/CD | Not started | No GitHub Actions or release pipeline |
-| App icons | Not started | `icons/` directory referenced but not populated |
+| App icons | Done | `pier-logo.png` (512²) → `bun run tauri icon pier-logo.png -o src-tauri/icons`; `public/` favicons for Vite |
 | Documentation (user-facing) | Not started | Only this dev doc and README exist |
 
 ---
@@ -162,6 +162,8 @@ Storage is managed through Rust Tauri commands:
 ```
 rest-api-client-app/
 ├── index.html                      # Vite entry HTML
+├── public/                         # Static assets (favicon, titlebar mark — copied from Tauri icon output)
+├── pier-logo.png                   # Source 512² for `tauri icon` (regenerates src-tauri/icons)
 ├── package.json                    # Frontend dependencies
 ├── vite.config.ts                  # Vite + SolidJS + TailwindCSS config
 ├── tsconfig.json                   # TypeScript config (~ alias → ./src)
@@ -403,7 +405,7 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 | CodeMirror not integrated | Request **body** editor is still plain; response **Pretty** uses read-only `highlight.js` only |
 | Drag-and-drop partial | Standalone requests can be dragged into collections/folders; no reordering / collection-to-collection DnD |
 | No import/export | No Postman/Insomnia/OpenAPI import capability |
-| App icons missing | `icons/` directory not populated — needed for production builds |
+| Icon regeneration | After editing `pier-logo.png`, run `tauri icon` and copy outputs into `public/` (commands in README) |
 
 ---
 
@@ -453,7 +455,7 @@ These features are described in `prd.md` but not yet built:
 13. **Plugin system** — Extensibility via plugins
 14. **Performance profiling** — Request waterfall, timing breakdown
 15. **Tests & CI/CD** — Unit tests, integration tests, GitHub Actions
-16. **App icons** — Design and add icons for all platforms
+16. **App icons** — Source: root `pier-logo.png`; see [Tauri icons](https://v2.tauri.app/develop/icons/)
 
 ---
 
