@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A local-first, privacy-first, ultra-fast REST API client"
 authors = ["Pier Contributors"]
 license = "MIT"
-repository = "https://github.com/your-org/pier-api-client"
+repository = "https://github.com/asimkaya/pier-rest-client"
 edition = "2021"
 rust-version = "1.77.2"
 
