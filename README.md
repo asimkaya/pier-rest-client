@@ -33,8 +33,8 @@ A **local-first**, **privacy-first** REST API desktop client for Windows, macOS,
 ## Getting started
 
 ```bash
-git clone https://github.com/<your-org>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/asimkaya/pier-rest-client
+cd pier-rest-client
 
 bun install
 bun run tauri dev
@@ -44,6 +44,16 @@ bun run tauri dev
 
 ```bash
 bun run tauri build
+```
+
+**App icons** (after changing `pier-logo.png`): regenerate Tauri assets per [Tauri icon docs](https://v2.tauri.app/develop/icons/), then refresh web favicons in `public/`:
+
+```bash
+bun run tauri icon pier-logo.png -o src-tauri/icons
+cp src-tauri/icons/icon.ico public/favicon.ico
+cp src-tauri/icons/32x32.png public/favicon-32.png
+cp src-tauri/icons/128x128.png public/apple-touch-icon.png
+cp src-tauri/icons/64x64.png public/pier-mark.png
 ```
 
 **Other scripts**
