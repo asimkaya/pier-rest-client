@@ -1,4 +1,4 @@
-import { createSignal, Show, For, createMemo } from "solid-js";
+import { createSignal, Show, For, createMemo, onCleanup } from "solid-js";
 import { getActiveTab } from "~/store/app-store";
 import { Badge } from "~/components/ui/badge";
 import { cn, formatBytes, formatDuration } from "~/lib/utils";
@@ -10,9 +10,14 @@ type BodyView = "pretty" | "raw";
 export function ResponseViewer() {
   const [activeTab, setActiveTab] = createSignal<ResponseTab>("body");
   const [bodyView, setBodyView] = createSignal<BodyView>("pretty");
+  const [copyBodyDone, setCopyBodyDone] = createSignal(false);
+
+  let copyBodyResetTimer: number | undefined;
 
   const tab = () => getActiveTab();
   const response = () => tab()?.response;
+
+  onCleanup(() => window.clearTimeout(copyBodyResetTimer));
 
   const formattedJsonBody = createMemo(() => {
     const body = response()?.body;
@@ -25,6 +30,22 @@ export function ResponseViewer() {
   });
 
   const prettyJsonHtml = createMemo(() => highlightJson(formattedJsonBody()));
+
+  function bodyClipboardText(): string {
+    if (bodyView() === "pretty") return formattedJsonBody();
+    return response()!.body;
+  }
+
+  async function copyResponseBody() {
+    try {
+      await navigator.clipboard.writeText(bodyClipboardText());
+      setCopyBodyDone(true);
+      window.clearTimeout(copyBodyResetTimer);
+      copyBodyResetTimer = window.setTimeout(() => setCopyBodyDone(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
 
   function getStatusVariant(status: number) {
     if (status >= 200 && status < 300) return "success" as const;
@@ -136,17 +157,51 @@ export function ResponseViewer() {
           </Show>
         </div>
 
-        <div class="flex-1 overflow-auto">
+        <div class="relative min-h-0 flex-1 overflow-auto">
           <Show when={activeTab() === "body"}>
+            <button
+              type="button"
+              class={cn(
+                "absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors",
+                "hover:bg-muted hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              )}
+              onClick={() => void copyResponseBody()}
+              aria-label={copyBodyDone() ? "Copied" : "Copy response body"}
+            >
+              <span
+                class={cn(
+                  "absolute flex items-center justify-center transition-all duration-200 ease-out",
+                  copyBodyDone() ? "scale-50 opacity-0" : "scale-100 opacity-100"
+                )}
+                aria-hidden="true"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              </span>
+              <span
+                class={cn(
+                  "absolute flex items-center justify-center text-success transition-all duration-200 ease-out",
+                  copyBodyDone() ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                )}
+                aria-hidden="true"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </span>
+            </button>
             <Show
               when={bodyView() === "pretty"}
               fallback={
-                <pre class="volt-tab-panel-in p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
+                <pre class="volt-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all">
                   {response()!.body}
                 </pre>
               }
             >
-              <pre class="volt-json-response volt-tab-panel-in p-3 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all">
+              <pre class="volt-json-response volt-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all">
                 <code class="language-json hljs" innerHTML={prettyJsonHtml()} />
               </pre>
             </Show>
