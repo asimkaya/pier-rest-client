@@ -1,5 +1,7 @@
 import { For, Show, createSignal } from "solid-js";
-import { state, setActiveTab, closeTab, addTab, renameTab } from "~/store/app-store";
+import { state, setActiveTab, closeTab } from "~/store/app-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
+import { renameTabAndPersist } from "~/features/collections/rename-tab-persist";
 import { cn, getMethodColor } from "~/lib/utils";
 import { Tooltip } from "~/components/ui/tooltip";
 
@@ -17,7 +19,7 @@ export function TabBar() {
     const id = editingTabId();
     const name = editValue().trim();
     if (id && name) {
-      renameTab(id, name);
+      void renameTabAndPersist(id, name);
     }
     setEditingTabId(null);
     setEditValue("");
@@ -85,6 +87,7 @@ export function TabBar() {
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               )}
               <button
+                type="button"
                 class="flex h-4 w-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -105,7 +108,7 @@ export function TabBar() {
         <button
           type="button"
           class="flex h-9 w-9 shrink-0 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          onClick={addTab}
+          onClick={() => void createNewRequestTab()}
           aria-label="New tab"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">

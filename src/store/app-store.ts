@@ -49,18 +49,6 @@ export function getActiveTab(): Tab | undefined {
 }
 
 // Tab actions
-export function addTab() {
-  const id = generateId();
-  const tab = createDefaultTab(id);
-  setState(
-    produce((s) => {
-      s.tabs.push(tab);
-      s.activeTabId = id;
-    })
-  );
-  return id;
-}
-
 export function closeTab(id: string) {
   setState(
     produce((s) => {

@@ -1,5 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
-import { addTab, closeTab, getActiveTab } from "~/store/app-store";
+import { closeTab, getActiveTab } from "~/store/app-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { saveActiveRequest } from "~/features/collections/save-request";
 
 interface KeyBinding {
@@ -12,7 +13,7 @@ interface KeyBinding {
 }
 
 const bindings: KeyBinding[] = [
-  { key: "t", ctrl: true, action: () => addTab(), description: "New tab" },
+  { key: "t", ctrl: true, action: () => void createNewRequestTab(), description: "New tab" },
   {
     key: "w",
     ctrl: true,

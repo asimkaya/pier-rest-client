@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
-import { state, setSidebarView, addTab } from "~/store/app-store";
+import { state, setSidebarView } from "~/store/app-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { Button } from "~/components/ui/button";
 import { CollectionTree } from "./collection-tree";
 import { HistoryPanel } from "~/features/history/history-panel";
@@ -71,7 +72,7 @@ export function Sidebar() {
       </div>
 
       <div class="border-t p-2">
-        <Button variant="ghost" size="sm" class="w-full justify-start gap-2" onClick={addTab}>
+        <Button variant="ghost" size="sm" class="w-full justify-start gap-2" onClick={() => void createNewRequestTab()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />

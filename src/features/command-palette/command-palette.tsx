@@ -1,5 +1,6 @@
 import { createSignal, Show, For, onMount, onCleanup, createMemo } from "solid-js";
-import { addTab, setSidebarView, closeTab, getActiveTab, state, setTheme, setActiveEnvironment } from "~/store/app-store";
+import { setSidebarView, closeTab, getActiveTab, state, setTheme, setActiveEnvironment } from "~/store/app-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { clearHistory } from "~/features/history/history-store";
 import { cn } from "~/lib/utils";
 import type { ThemeMode } from "~/lib/types";
@@ -14,7 +15,7 @@ interface CommandItem {
 
 function buildCommands(): CommandItem[] {
   const commands: CommandItem[] = [
-    { id: "new-request", label: "New Request", category: "General", shortcut: "Ctrl+T", action: () => addTab() },
+    { id: "new-request", label: "New Request", category: "General", shortcut: "Ctrl+T", action: () => void createNewRequestTab() },
     {
       id: "close-tab",
       label: "Close Current Tab",

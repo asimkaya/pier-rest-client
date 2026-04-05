@@ -7,6 +7,7 @@ import { Tooltip } from "~/components/ui/tooltip";
 import {
   createCollection,
   deleteCollection,
+  renameCollection,
   addFolderToCollection,
   addRequestToCollection,
   removeRequestFromCollection,
@@ -103,6 +104,12 @@ export function CollectionTree() {
   const [renameContext, setRenameContext] = createSignal<{ collectionId?: string; folderId?: string | null; standalone?: boolean } | null>(null);
   const [creatingFolder, setCreatingFolder] = createSignal<string | null>(null);
   const [folderName, setFolderName] = createSignal("");
+  const [renamingCollectionId, setRenamingCollectionId] = createSignal<string | null>(null);
+  const [collectionRenameDraft, setCollectionRenameDraft] = createSignal("");
+  const [pendingDeleteCollection, setPendingDeleteCollection] = createSignal<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   let expandTimer: number | undefined;
   let lastAutoExpandKey: string | null = null;
@@ -236,6 +243,32 @@ export function CollectionTree() {
     setRenamingRequestId(null);
     setRenameValue("");
     setRenameContext(null);
+  }
+
+  function startRenameCollection(collectionId: string, currentName: string) {
+    setRenamingRequestId(null);
+    setRenameValue("");
+    setRenameContext(null);
+    setRenamingCollectionId(collectionId);
+    setCollectionRenameDraft(currentName);
+  }
+
+  async function commitCollectionRename() {
+    const id = renamingCollectionId();
+    const name = collectionRenameDraft().trim();
+    if (!id || !name) {
+      setRenamingCollectionId(null);
+      setCollectionRenameDraft("");
+      return;
+    }
+    await renameCollection(id, name);
+    setRenamingCollectionId(null);
+    setCollectionRenameDraft("");
+  }
+
+  function cancelCollectionRename() {
+    setRenamingCollectionId(null);
+    setCollectionRenameDraft("");
   }
 
   async function moveStandaloneToCollection(
@@ -479,6 +512,8 @@ export function CollectionTree() {
               class="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/req:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
+                setRenamingCollectionId(null);
+                setCollectionRenameDraft("");
                 setRenamingRequestId(req.id);
                 setRenameValue(req.name);
                 setRenameContext({ standalone: true });
@@ -662,7 +697,10 @@ export function CollectionTree() {
                   "ring-2 ring-primary/50 bg-primary/5 drop-target-active"
                 )}
                 data-volt-drop={`c:${collection.id}`}
-                onClick={() => toggleExpanded(collection.id)}
+                onClick={() => {
+                  if (renamingCollectionId() === collection.id) return;
+                  toggleExpanded(collection.id);
+                }}
                 onContextMenu={(e) => handleContextMenu(e, collection.id)}
               >
                 <svg
@@ -674,45 +712,87 @@ export function CollectionTree() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-muted-foreground">
                   <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                <span class="flex-1 truncate text-xs">{collection.name}</span>
-                <Tooltip label="New request" placement="top" triggerClass="shrink-0">
-                  <button
-                    type="button"
-                    class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addNewRequestToCollection(collection.id, null);
-                    }}
-                    aria-label="Add request to collection"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <line x1="6" y1="2" x2="6" y2="10" />
-                      <line x1="2" y1="6" x2="10" y2="6" />
-                    </svg>
-                  </button>
-                </Tooltip>
-                <button
-                  class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (collectionHasContents(collection)) {
-                      if (
-                        !window.confirm(
-                          `Delete "${collection.name}"? It contains folders and/or requests. This cannot be undone.`
-                        )
-                      ) {
-                        return;
-                      }
-                    }
-                    void deleteCollection(collection.id);
-                  }}
-                  aria-label="Delete collection"
+                <Show
+                  when={renamingCollectionId() === collection.id}
+                  fallback={
+                    <>
+                      <span class="flex-1 truncate text-xs">{collection.name}</span>
+                      <Tooltip label="New request" placement="top" triggerClass="shrink-0">
+                        <button
+                          type="button"
+                          class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addNewRequestToCollection(collection.id, null);
+                          }}
+                          aria-label="Add request to collection"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="6" y1="2" x2="6" y2="10" />
+                            <line x1="2" y1="6" x2="10" y2="6" />
+                          </svg>
+                        </button>
+                      </Tooltip>
+                      <Tooltip label="Rename collection" placement="top" triggerClass="shrink-0">
+                        <button
+                          type="button"
+                          class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startRenameCollection(collection.id, collection.name);
+                          }}
+                          aria-label="Rename collection"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                      </Tooltip>
+                      <button
+                        type="button"
+                        class="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (collectionHasContents(collection)) {
+                            setPendingDeleteCollection({ id: collection.id, name: collection.name });
+                          } else {
+                            void deleteCollection(collection.id);
+                          }
+                        }}
+                        aria-label="Delete collection"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <line x1="2" y1="2" x2="10" y2="10" />
+                          <line x1="10" y1="2" x2="2" y2="10" />
+                        </svg>
+                      </button>
+                    </>
+                  }
                 >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <line x1="2" y1="2" x2="10" y2="10" />
-                    <line x1="10" y1="2" x2="2" y2="10" />
-                  </svg>
-                </button>
+                  <Input
+                    ref={(el) =>
+                      queueMicrotask(() => {
+                        try {
+                          el.focus({ preventScroll: true });
+                          el.select();
+                        } catch {
+                          /* ignore */
+                        }
+                      })
+                    }
+                    class="h-7 flex-1 text-xs"
+                    value={collectionRenameDraft()}
+                    onInput={(e) => setCollectionRenameDraft(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") void commitCollectionRename();
+                      if (e.key === "Escape") cancelCollectionRename();
+                    }}
+                    onBlur={() => void commitCollectionRename()}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Show>
               </div>
 
               <Show when={expandedIds().has(collection.id)}>
@@ -782,6 +862,7 @@ export function CollectionTree() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               class="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent"
               onClick={() => addNewRequestToCollection(menu().collectionId, menu().folderId)}
             >
@@ -793,6 +874,24 @@ export function CollectionTree() {
             </button>
             <Show when={!menu().folderId}>
               <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent"
+                onClick={() => {
+                  const col = state.collections.find((c) => c.id === menu().collectionId);
+                  if (col) startRenameCollection(col.id, col.name);
+                  closeContextMenu();
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Rename
+              </button>
+            </Show>
+            <Show when={!menu().folderId}>
+              <button
+                type="button"
                 class="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent"
                 onClick={() => {
                   setCreatingFolder(menu().collectionId);
@@ -916,6 +1015,52 @@ export function CollectionTree() {
                     }}
                   >
                     Move here
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        }}
+      </Show>
+
+      <Show when={pendingDeleteCollection()}>
+        {(getPending) => {
+          const pending = () => getPending()!;
+          return (
+            <div
+              class="fixed inset-0 z-[10041] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="volt-delete-collection-title"
+              onClick={() => setPendingDeleteCollection(null)}
+            >
+              <div
+                class="w-full max-w-md rounded-lg border border-border bg-popover p-4 shadow-xl animate-scale-in"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setPendingDeleteCollection(null);
+                }}
+              >
+                <h2 id="volt-delete-collection-title" class="text-sm font-semibold text-foreground">
+                  Delete collection
+                </h2>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  Delete &quot;{pending().name}&quot;? It contains folders and/or requests. This cannot be undone.
+                </p>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setPendingDeleteCollection(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const p = pending();
+                      void deleteCollection(p.id);
+                      setPendingDeleteCollection(null);
+                    }}
+                  >
+                    Delete
                   </Button>
                 </div>
               </div>

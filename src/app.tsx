@@ -7,7 +7,8 @@ import { RequestBuilder } from "~/features/request-builder/request-builder";
 import { ResponseViewer } from "~/features/response-viewer/response-viewer";
 import { CommandPalette } from "~/features/command-palette/command-palette";
 import { useKeybindings } from "~/lib/keybindings";
-import { state, setTheme, addTab, setSidebarWidth } from "~/store/app-store";
+import { state, setTheme, setSidebarWidth } from "~/store/app-store";
+import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { loadCollections } from "~/features/collections/collection-store";
 import { loadEnvironments } from "~/features/environments/env-store";
 import { loadHistory } from "~/features/history/history-store";
@@ -104,7 +105,7 @@ const App: Component = () => {
                 </div>
                 <button
                   class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={() => addTab()}
+                  onClick={() => void createNewRequestTab()}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
                     <line x1="7" y1="2" x2="7" y2="12" />
