@@ -81,7 +81,7 @@ export function ResponseViewer() {
   const [activeTab, setActiveTab] = createSignal<ResponseTab>("body");
   const [bodyView, setBodyView] = createSignal<BodyView>("pretty");
   const [copyBodyDone, setCopyBodyDone] = createSignal(false);
-  const [searchOpen, setSearchOpen] = createSignal(false);
+  const [searchOpen, setSearchOpen] = createSignal(true);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchMatchCount, setSearchMatchCount] = createSignal(0);
   const [activeSearchMatchIndex, setActiveSearchMatchIndex] = createSignal(-1);
