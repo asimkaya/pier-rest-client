@@ -322,173 +322,182 @@ export function ResponseViewer() {
           </Show>
         </div>
 
-        <div class="relative min-h-0 flex-1 overflow-auto">
+        <div class="min-h-0 flex-1 overflow-hidden">
           <Show when={activeTab() === "body"}>
-            <div class="absolute inset-x-2 top-2 z-10 flex min-w-0 items-center justify-end gap-2">
-              <div
-                class={cn(
-                  "flex min-w-0 items-center gap-1 overflow-hidden rounded-md border bg-card/95 shadow-sm backdrop-blur-sm transition-all duration-200 ease-out",
-                  searchOpen()
-                    ? "w-full max-w-104 flex-1 border-border px-1.5 opacity-100"
-                    : "w-0 max-w-0 flex-none border-transparent px-0 opacity-0 pointer-events-none"
-                )}
-              >
-                <Input
-                  ref={(el) => {
-                    searchInputRef = el;
-                  }}
-                  value={searchQuery()}
-                  onInput={(e) => setSearchQuery(e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (e.shiftKey) {
-                        goToPreviousSearchMatch();
-                      } else {
-                        goToNextSearchMatch();
-                      }
-                    }
+            <div class="flex h-full min-h-0 flex-col">
+              <div class="shrink-0 border-b border-border/60 bg-background/95 px-2 py-2 backdrop-blur-sm">
+                <div class="flex min-w-0 items-center justify-end gap-2">
+                  <div
+                    class={cn(
+                      "flex min-w-0 items-center gap-1 overflow-hidden rounded-md border bg-card/95 shadow-sm backdrop-blur-sm transition-all duration-200 ease-out",
+                      searchOpen()
+                        ? "w-full max-w-104 flex-1 border-border px-1.5 opacity-100"
+                        : "w-0 max-w-0 flex-none border-transparent px-0 opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <Input
+                      ref={(el) => {
+                        searchInputRef = el;
+                      }}
+                      value={searchQuery()}
+                      onInput={(e) => setSearchQuery(e.currentTarget.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (e.shiftKey) {
+                            goToPreviousSearchMatch();
+                          } else {
+                            goToNextSearchMatch();
+                          }
+                        }
 
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      closeSearch();
-                    }
-                  }}
-                  placeholder="Search body"
-                  class="h-8 min-w-0 flex-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0"
-                  aria-label="Search response body"
-                />
-                <span class="min-w-12 shrink-0 text-center text-[10px] font-medium text-muted-foreground">
-                  {searchMatchCount()
-                    ? `${activeSearchMatchIndex() + 1}/${searchMatchCount()}`
-                    : "0/0"}
-                </span>
-                <button
-                  type="button"
-                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={goToPreviousSearchMatch}
-                  disabled={!searchMatchCount()}
-                  aria-label="Previous search match"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={goToNextSearchMatch}
-                  disabled={!searchMatchCount()}
-                  aria-label="Next search match"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  onClick={closeSearch}
-                  aria-label="Close response search"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M18 6L6 18" />
-                    <path d="M6 6l12 12" />
-                  </svg>
-                </button>
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          closeSearch();
+                        }
+                      }}
+                      placeholder="Search body"
+                      class="h-8 min-w-0 flex-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0"
+                      aria-label="Search response body"
+                    />
+                    <span class="min-w-12 shrink-0 text-center text-[10px] font-medium text-muted-foreground">
+                      {searchMatchCount()
+                        ? `${activeSearchMatchIndex() + 1}/${searchMatchCount()}`
+                        : "0/0"}
+                    </span>
+                    <button
+                      type="button"
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={goToPreviousSearchMatch}
+                      disabled={!searchMatchCount()}
+                      aria-label="Previous search match"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={goToNextSearchMatch}
+                      disabled={!searchMatchCount()}
+                      aria-label="Next search match"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      onClick={closeSearch}
+                      aria-label="Close response search"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    class={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors",
+                      "hover:bg-muted hover:text-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    )}
+                    onClick={openSearch}
+                    aria-label="Search response body"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    class={cn(
+                      "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors",
+                      "hover:bg-muted hover:text-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    )}
+                    onClick={() => void copyResponseBody()}
+                    aria-label={copyBodyDone() ? "Copied" : "Copy response body"}
+                  >
+                    <span
+                      class={cn(
+                        "absolute flex items-center justify-center transition-all duration-200 ease-out",
+                        copyBodyDone() ? "scale-50 opacity-0" : "scale-100 opacity-100"
+                      )}
+                      aria-hidden="true"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                    </span>
+                    <span
+                      class={cn(
+                        "absolute flex items-center justify-center text-success transition-all duration-200 ease-out",
+                        copyBodyDone() ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                      )}
+                      aria-hidden="true"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                class={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors",
-                  "hover:bg-muted hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                )}
-                onClick={openSearch}
-                aria-label="Search response body"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M21 21l-4.35-4.35" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                class={cn(
-                  "relative flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors",
-                  "hover:bg-muted hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                )}
-                onClick={() => void copyResponseBody()}
-                aria-label={copyBodyDone() ? "Copied" : "Copy response body"}
-              >
-                <span
-                  class={cn(
-                    "absolute flex items-center justify-center transition-all duration-200 ease-out",
-                    copyBodyDone() ? "scale-50 opacity-0" : "scale-100 opacity-100"
-                  )}
-                  aria-hidden="true"
+              <div class="min-h-0 flex-1 overflow-auto">
+                <Show
+                  when={bodyView() === "pretty"}
+                  fallback={
+                    <pre
+                      ref={bodyContentRef}
+                      class="pier-tab-panel-in p-3 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all"
+                    >
+                      {response()!.body}
+                    </pre>
+                  }
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
-                </span>
-                <span
-                  class={cn(
-                    "absolute flex items-center justify-center text-success transition-all duration-200 ease-out",
-                    copyBodyDone() ? "scale-100 opacity-100" : "scale-50 opacity-0"
-                  )}
-                  aria-hidden="true"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </span>
-              </button>
+                  <pre
+                    ref={bodyContentRef}
+                    class="pier-json-response pier-tab-panel-in p-3 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all"
+                  >
+                    <code class="language-json hljs" innerHTML={prettyJsonHtml()} />
+                  </pre>
+                </Show>
+              </div>
             </div>
-            <Show
-              when={bodyView() === "pretty"}
-              fallback={
-                <pre
-                  ref={bodyContentRef}
-                  class="pier-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed text-foreground/90 select-text whitespace-pre-wrap break-all"
-                >
-                  {response()!.body}
-                </pre>
-              }
-            >
-              <pre
-                ref={bodyContentRef}
-                class="pier-json-response pier-tab-panel-in p-3 pr-12 pt-11 font-mono text-xs leading-relaxed select-text whitespace-pre-wrap break-all"
-              >
-                <code class="language-json hljs" innerHTML={prettyJsonHtml()} />
-              </pre>
-            </Show>
           </Show>
 
           <Show when={activeTab() === "headers"}>
-            <div class="pier-tab-panel-in p-2">
-              <table class="w-full text-xs">
-                <thead>
-                  <tr class="border-b text-left text-muted-foreground">
-                    <th class="px-2 py-1.5 font-medium">Name</th>
-                    <th class="px-2 py-1.5 font-medium">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <For each={Object.entries(response()!.headers)}>
-                    {([key, value]) => (
-                      <tr class="border-b border-border/50 hover:bg-muted/30">
-                        <td class="px-2 py-1.5 font-mono font-semibold text-primary/80 select-text">{key}</td>
-                        <td class="px-2 py-1.5 font-mono text-foreground/80 select-text break-all">{value}</td>
-                      </tr>
-                    )}
-                  </For>
-                </tbody>
-              </table>
+            <div class="h-full overflow-auto">
+              <div class="pier-tab-panel-in p-2">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="border-b text-left text-muted-foreground">
+                      <th class="px-2 py-1.5 font-medium">Name</th>
+                      <th class="px-2 py-1.5 font-medium">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <For each={Object.entries(response()!.headers)}>
+                      {([key, value]) => (
+                        <tr class="border-b border-border/50 hover:bg-muted/30">
+                          <td class="px-2 py-1.5 font-mono font-semibold text-primary/80 select-text">{key}</td>
+                          <td class="px-2 py-1.5 font-mono text-foreground/80 select-text break-all">{value}</td>
+                        </tr>
+                      )}
+                    </For>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </Show>
         </div>
