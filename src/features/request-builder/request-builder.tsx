@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { CodeEditor } from "~/components/ui/code-editor";
 import { KeyValueEditor } from "./key-value-editor";
 import { AuthEditor } from "./auth-editor";
 import { state, updateTabRequest, setTabLoading, setTabResponse } from "~/store/app-store";
@@ -191,6 +192,7 @@ export function RequestBuilder() {
             <div class="flex gap-1">
               {BODY_TYPES.map((bt) => (
                 <button
+                  type="button"
                   class={cn(
                     "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                     tab()?.request.body.type === bt.value
@@ -207,20 +209,20 @@ export function RequestBuilder() {
             </div>
 
             <Show when={tab()?.request.body.type === "json" || tab()?.request.body.type === "raw"}>
-              <textarea
+              <CodeEditor
                 value={tab()?.request.body.content ?? ""}
-                onInput={(e) =>
+                onValueChange={(content) =>
                   updateRequest({
-                    body: { ...tab()!.request.body, content: e.currentTarget.value },
+                    body: { ...tab()!.request.body, content },
                   })
                 }
+                language={tab()?.request.body.type === "json" ? "json" : "plain"}
                 placeholder={
                   tab()?.request.body.type === "json"
                     ? '{\n  "key": "value"\n}'
                     : "Enter request body"
                 }
-                class="min-h-[200px] w-full resize-y rounded-md border bg-transparent p-3 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                spellcheck={false}
+                ariaLabel={tab()?.request.body.type === "json" ? "JSON request body editor" : "Raw request body editor"}
               />
             </Show>
 

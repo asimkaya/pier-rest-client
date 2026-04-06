@@ -20,9 +20,9 @@ Think of it as a lightweight, open-source alternative to Postman/Insomnia with a
 | Project scaffolding | Done | Tauri v2 + SolidJS + Bun + TailwindCSS v4 |
 | Custom titlebar | Done | Drag, minimize, maximize (dblclick), close |
 | Tab system | Done | Create, close, rename (inline); new tab = standalone saved + `savedLocation`; rename syncs to disk |
-| Request builder | Done | Method selector, URL bar, params, headers, body (JSON/raw/form), auth |
+| Request builder | Done | Method selector, URL bar, params, headers, body (JSON/raw/form), auth; JSON/raw body uses CodeMirror |
 | HTTP engine (Rust) | Done | reqwest-based, JSON/raw/multipart, timing, redirects |
-| Response viewer | Done | Pretty (formatted + `highlight.js` colors), raw, headers, meta; Body copy button (pretty vs raw) |
+| Response viewer | Done | Pretty (formatted + `highlight.js` colors), raw, headers, meta; body copy + inline body search |
 | Collections | Done | CRUD, rename (context + pencil), folders, requests; custom delete/confirm modals (no `window.confirm`) |
 | Standalone saved requests | Done | New tab / Ctrl+S / empty-state New Request; sidebar rename, move, delete with modal; DnD move |
 | Environments | Done | CRUD, variable interpolation (`{{var}}`), env selector in titlebar |
@@ -368,6 +368,13 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 - **Pretty**: `JSON.stringify(JSON.parse(body), null, 2)` when valid JSON; else raw string; HTML via `highlightJson()` + `.pier-json-response` / `.hljs-*` theme in `globals.css` (dark, `data-theme="light"`, system)
 - **Raw**: response body string only
 - **Copy** (Body tab only): fixed top-right; copies Pretty formatted text or Raw body; short transition to check icon (`text-success`), then reset (~1.5s)
+- **Search** (Body tab only): magnifier button opens an inline animated search input next to copy; matches are highlighted only inside the visible response body content
+
+### 8.6 Request body editor
+- JSON and Raw request body editing now uses **CodeMirror**
+- Wrapper component: `src/components/ui/code-editor.tsx`
+- Current integration point: `src/features/request-builder/request-builder.tsx`
+- Enabled basics: syntax highlighting for JSON, auto-closing brackets, wrapped lines, focused editor styling
 
 ### 8.7 Environment Variable Interpolation
 - Variables use `{{variableName}}` syntax
@@ -402,7 +409,7 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 | No error toasts | Storage/network errors are silently caught — needs user-visible error feedback |
 | No loading states for save operations | Ctrl+S, collection operations have no visual feedback |
 | History limit | Hardcoded to 100 entries, no pagination |
-| CodeMirror not integrated | Request **body** editor is still plain; response **Pretty** uses read-only `highlight.js` only |
+| No JSON validation feedback in editor | Request body uses CodeMirror, but invalid JSON is not yet surfaced with inline diagnostics or format actions |
 | Drag-and-drop partial | Standalone requests can be dragged into collections/folders; no reordering / collection-to-collection DnD |
 | No import/export | No Postman/Insomnia/OpenAPI import capability |
 | Icon regeneration | After editing `pier-logo.png`, run `tauri icon` and copy outputs into `public/` (commands in README) |
@@ -440,22 +447,20 @@ cd src-tauri && cargo check
 
 These features are described in `prd.md` but not yet built:
 
-1. **Code editor integration** — CodeMirror 6 (or similar) for JSON **request** body editing; response Pretty already highlighted via `highlight.js`
-2. **WebSocket support** — Real-time WebSocket client
-3. **GraphQL support** — Query/mutation editor with schema introspection
-4. **Request pre/post scripts** — JavaScript scripting engine
-5. **Certificate management** — Custom CA certs, client certificates
-6. **Proxy configuration** — HTTP/SOCKS proxy settings
-7. **Cookie management** — Cookie jar with automatic handling
-8. **Import/Export** — Postman, Insomnia, OpenAPI, cURL import
-9. **Response search** — Find in response body
-10. **Binary response handling** — Image preview, file download
-11. **Request chaining** — Use response values in subsequent requests
-12. **Team sharing** — Git-based collection sharing
-13. **Plugin system** — Extensibility via plugins
-14. **Performance profiling** — Request waterfall, timing breakdown
-15. **Tests & CI/CD** — Unit tests, integration tests, GitHub Actions
-16. **App icons** — Source: root `pier-logo.png`; see [Tauri icons](https://v2.tauri.app/develop/icons/)
+1. **WebSocket support** — Real-time WebSocket client
+2. **GraphQL support** — Query/mutation editor with schema introspection
+3. **Request pre/post scripts** — JavaScript scripting engine
+4. **Certificate management** — Custom CA certs, client certificates
+5. **Proxy configuration** — HTTP/SOCKS proxy settings
+6. **Cookie management** — Cookie jar with automatic handling
+7. **Import/Export** — Postman, Insomnia, OpenAPI, cURL import
+8. **Binary response handling** — Image preview, file download
+9. **Request chaining** — Use response values in subsequent requests
+10. **Team sharing** — Git-based collection sharing
+11. **Plugin system** — Extensibility via plugins
+12. **Performance profiling** — Request waterfall, timing breakdown
+13. **Tests & CI/CD** — Unit tests, integration tests, GitHub Actions
+14. **App icons** — Source: root `pier-logo.png`; see [Tauri icons](https://v2.tauri.app/develop/icons/)
 
 ---
 
@@ -490,3 +495,8 @@ These features are described in `prd.md` but not yet built:
 
 ### Future: shared confirm dialog
 - Modals are duplicated in `collection-tree.tsx` today. New destructive flows should reuse the same layout (or extract a small `ConfirmDialog` component) instead of `window.confirm`.
+
+
+### Tags
+git tag v0.1.1
+git push origin v0.1.1

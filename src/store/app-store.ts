@@ -11,7 +11,7 @@ import type {
   SavedLocation,
   SavedRequest,
 } from "~/lib/types";
-import { createDefaultTab, createDefaultRequest } from "~/lib/types";
+import { createDefaultRequest } from "~/lib/types";
 import { generateId } from "~/lib/utils";
 
 interface AppState {
@@ -27,11 +27,9 @@ interface AppState {
   theme: ThemeMode;
 }
 
-const initialTabId = generateId();
-
 const [state, setState] = createStore<AppState>({
-  tabs: [createDefaultTab(initialTabId)],
-  activeTabId: initialTabId,
+  tabs: [],
+  activeTabId: "",
   collections: [],
   savedRequests: [],
   environments: [],
