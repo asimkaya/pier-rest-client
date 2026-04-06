@@ -2,6 +2,11 @@ import { createSignal, Show, For, onMount, onCleanup, createMemo } from "solid-j
 import { setSidebarView, closeTab, getActiveTab, state, setTheme, setActiveEnvironment } from "~/store/app-store";
 import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { clearHistory } from "~/features/history/history-store";
+import {
+  exportWorkspaceViaDialog,
+  importWorkspaceViaDialog,
+  openCurlImportModal,
+} from "~/features/import-export/import-export-store";
 import { cn } from "~/lib/utils";
 import type { ThemeMode } from "~/lib/types";
 
@@ -10,7 +15,7 @@ interface CommandItem {
   label: string;
   category: string;
   shortcut?: string;
-  action: () => void;
+  action: () => void | Promise<void>;
 }
 
 function buildCommands(): CommandItem[] {
@@ -29,6 +34,9 @@ function buildCommands(): CommandItem[] {
     { id: "view-history", label: "View History", category: "Navigation", action: () => setSidebarView("history") },
     { id: "view-environments", label: "View Environments", category: "Navigation", action: () => setSidebarView("environments") },
     { id: "clear-history", label: "Clear History", category: "Data", action: () => clearHistory() },
+    { id: "export-workspace", label: "Export Workspace", category: "Data", action: () => void exportWorkspaceViaDialog() },
+    { id: "import-workspace", label: "Import Workspace", category: "Data", action: () => void importWorkspaceViaDialog() },
+    { id: "import-curl", label: "Import cURL", category: "Data", action: () => openCurlImportModal() },
     { id: "theme-system", label: "Theme: System", category: "Appearance", action: () => setTheme("system" as ThemeMode) },
     { id: "theme-dark", label: "Theme: Dark", category: "Appearance", action: () => setTheme("dark" as ThemeMode) },
     { id: "theme-light", label: "Theme: Light", category: "Appearance", action: () => setTheme("light" as ThemeMode) },

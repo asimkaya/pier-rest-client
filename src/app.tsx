@@ -6,6 +6,7 @@ import { TabBar } from "~/features/tabs/tab-bar";
 import { RequestBuilder } from "~/features/request-builder/request-builder";
 import { ResponseViewer } from "~/features/response-viewer/response-viewer";
 import { CommandPalette } from "~/features/command-palette/command-palette";
+import { CurlImportModal } from "~/features/import-export/curl-import-modal";
 import { useKeybindings } from "~/lib/keybindings";
 import { state, setTheme, setSidebarWidth } from "~/store/app-store";
 import { createNewRequestTab } from "~/features/collections/new-request-tab";
@@ -13,6 +14,7 @@ import { loadCollections } from "~/features/collections/collection-store";
 import { loadEnvironments } from "~/features/environments/env-store";
 import { loadHistory } from "~/features/history/history-store";
 import { loadSavedRequests } from "~/features/collections/saved-requests-store";
+import { openCurlImportModal } from "~/features/import-export/import-export-store";
 
 const App: Component = () => {
   useKeybindings();
@@ -103,16 +105,30 @@ const App: Component = () => {
                     Create a new request or open one from your collections
                   </p>
                 </div>
-                <button
-                  class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={() => void createNewRequestTab()}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <line x1="7" y1="2" x2="7" y2="12" />
-                    <line x1="2" y1="7" x2="12" y2="7" />
-                  </svg>
-                  New Request
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    onClick={() => void createNewRequestTab()}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <line x1="7" y1="2" x2="7" y2="12" />
+                      <line x1="2" y1="7" x2="12" y2="7" />
+                    </svg>
+                    New Request
+                  </button>
+
+                  <button
+                    class="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                    onClick={openCurlImportModal}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3v12" />
+                      <path d="M7 10l5 5 5-5" />
+                      <path d="M5 21h14" />
+                    </svg>
+                    Import cURL
+                  </button>
+                </div>
               </div>
             }
           >
@@ -137,6 +153,7 @@ const App: Component = () => {
       </div>
 
       <CommandPalette />
+      <CurlImportModal />
     </div>
   );
 };

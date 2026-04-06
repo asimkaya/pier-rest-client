@@ -2,6 +2,7 @@ import { For, Show } from "solid-js";
 import { state, setSidebarView } from "~/store/app-store";
 import { createNewRequestTab } from "~/features/collections/new-request-tab";
 import { Button } from "~/components/ui/button";
+import { openCurlImportModal } from "~/features/import-export/import-export-store";
 import { CollectionTree } from "./collection-tree";
 import { HistoryPanel } from "~/features/history/history-panel";
 import { EnvironmentManager } from "~/features/environments/env-manager";
@@ -78,6 +79,15 @@ export function Sidebar() {
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           New Request
+        </Button>
+
+        <Button variant="ghost" size="sm" class="mt-1 w-full justify-start gap-2" onClick={openCurlImportModal}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3v12" />
+            <path d="M7 10l5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          Import cURL
         </Button>
       </div>
     </aside>

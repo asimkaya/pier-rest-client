@@ -9,6 +9,7 @@ import { getActiveTab } from "~/store/app-store";
 import { addHistoryEntry } from "~/store/app-store";
 import { sendRequest } from "~/lib/tauri";
 import { saveHistory } from "~/features/history/history-store";
+import { looksLikeCurlCommand, parseCurlCommand } from "~/features/import-export/curl-import";
 import { cn, generateId, getMethodColor } from "~/lib/utils";
 import type { HttpMethod, BodyType, KeyValue, RequestConfig, AuthConfig } from "~/lib/types";
 
@@ -110,6 +111,21 @@ export function RequestBuilder() {
         <Input
           value={tab()?.request.url ?? ""}
           onInput={(e) => updateRequest({ url: e.currentTarget.value })}
+          onPaste={(e) => {
+            const pastedText = e.clipboardData?.getData("text") ?? "";
+            if (!looksLikeCurlCommand(pastedText)) return;
+
+            try {
+              const parsed = parseCurlCommand(pastedText);
+              e.preventDefault();
+              const activeTab = tab();
+              if (!activeTab) return;
+              updateTabRequest(activeTab.id, parsed.request);
+              setTabResponse(activeTab.id, null);
+            } catch {
+              /* fall back to normal paste when parsing fails */
+            }
+          }}
           placeholder="Enter URL or paste cURL"
           class="flex-1 font-mono text-sm"
           onKeyDown={(e) => {

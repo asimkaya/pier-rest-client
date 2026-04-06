@@ -1,14 +1,14 @@
 import { generateId } from "~/lib/utils";
-import { createDefaultRequest, type SavedRequest } from "~/lib/types";
+import { createDefaultRequest, type RequestConfig, type SavedRequest } from "~/lib/types";
 import { openRequestInTab } from "~/store/app-store";
 import { addSavedRequest } from "./saved-requests-store";
 
-export async function createNewRequestTab(): Promise<void> {
+export async function createStandaloneRequestTab(config?: RequestConfig, name = "New Request"): Promise<void> {
   const requestId = generateId();
-  const req = createDefaultRequest();
+  const req = config ? JSON.parse(JSON.stringify(config)) as RequestConfig : createDefaultRequest();
   const saved: SavedRequest = {
     id: requestId,
-    name: "New Request",
+    name,
     method: req.method,
     url: req.url,
     headers: [...req.headers],
@@ -29,4 +29,8 @@ export async function createNewRequestTab(): Promise<void> {
     saved.name,
     { type: "standalone", requestId: saved.id }
   );
+}
+
+export async function createNewRequestTab(): Promise<void> {
+  await createStandaloneRequestTab();
 }

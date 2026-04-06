@@ -96,6 +96,14 @@ export interface EnvironmentVariable {
   enabled: boolean;
 }
 
+export interface WorkspaceBackupPayload {
+  version: 1;
+  exportedAt: string;
+  collections: Collection[];
+  savedRequests: SavedRequest[];
+  environments: Environment[];
+}
+
 export interface RequestLog {
   id: string;
   timestamp: string;

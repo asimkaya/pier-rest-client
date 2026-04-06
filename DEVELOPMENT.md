@@ -27,7 +27,8 @@ Think of it as a lightweight, open-source alternative to Postman/Insomnia with a
 | Standalone saved requests | Done | New tab / Ctrl+S / empty-state New Request; sidebar rename, move, delete with modal; DnD move |
 | Environments | Done | CRUD, variable interpolation (`{{var}}`), env selector in titlebar |
 | History | Done | Auto-logged, grouped by date, re-open, clear |
-| Command palette | Done | Ctrl+K, fuzzy search, keyboard navigation, clickable from titlebar |
+| Command palette | Done | Ctrl+K, fuzzy search, keyboard navigation, clickable from titlebar; workspace import/export + Import cURL actions |
+| Import / Export | Done | Workspace backup JSON export/import for collections, saved requests, environments via native file dialog |
 | Dark/Light/System theme | Done | CSS variable-based, toggled via command palette |
 | Keyboard shortcuts | Done | Ctrl+T → `createNewRequestTab`; Ctrl+W (close), Ctrl+S (save), Ctrl+K (commands) |
 | Accessibility | Partial | ARIA labels present, focus management needs refinement |
@@ -396,6 +397,14 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 - Window control buttons: minimize, maximize/restore, close
 - Titlebar contains: app logo, environment selector, command palette button
 
+### 8.10 Import / Export + cURL import
+- Workspace backup logic lives in `src/features/import-export/workspace-backup.ts`
+- Export/import scope in v1: `collections + saved requests + environments` (history excluded)
+- Native file picker/save dialog is wrapped in `src/lib/tauri.ts`
+- Command palette actions: **Export Workspace**, **Import Workspace**, **Import cURL**
+- cURL parser lives in `src/features/import-export/curl-import.ts`
+- cURL can be imported from URL paste in `request-builder.tsx` or from the modal `curl-import-modal.tsx`
+
 ---
 
 ## 9. Known Issues & Technical Debt
@@ -411,7 +420,7 @@ Implemented in `collection-tree.tsx` (signals, not a shared component yet):
 | History limit | Hardcoded to 100 entries, no pagination |
 | No JSON validation feedback in editor | Request body uses CodeMirror, but invalid JSON is not yet surfaced with inline diagnostics or format actions |
 | Drag-and-drop partial | Standalone requests can be dragged into collections/folders; no reordering / collection-to-collection DnD |
-| No import/export | No Postman/Insomnia/OpenAPI import capability |
+| Limited import/export scope | Workspace backup JSON and cURL import exist, but Postman / Insomnia / OpenAPI import-export is still not implemented |
 | Icon regeneration | After editing `pier-logo.png`, run `tauri icon` and copy outputs into `public/` (commands in README) |
 
 ---
@@ -453,7 +462,7 @@ These features are described in `prd.md` but not yet built:
 4. **Certificate management** — Custom CA certs, client certificates
 5. **Proxy configuration** — HTTP/SOCKS proxy settings
 6. **Cookie management** — Cookie jar with automatic handling
-7. **Import/Export** — Postman, Insomnia, OpenAPI, cURL import
+7. **Import/Export** — Postman, Insomnia, OpenAPI support beyond the built-in workspace backup JSON format
 8. **Binary response handling** — Image preview, file download
 9. **Request chaining** — Use response values in subsequent requests
 10. **Team sharing** — Git-based collection sharing

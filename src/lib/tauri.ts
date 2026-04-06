@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import type { RequestConfig, ResponseData } from "./types";
 import { resolveVariables } from "./variable-resolver";
 import { getActiveEnvironmentVariables } from "~/features/environments/env-store";
@@ -84,4 +86,32 @@ export async function deleteJsonFile(relativePath: string): Promise<void> {
 
 export async function listJsonFiles(relativeDir: string): Promise<string[]> {
   return invoke<string[]>("list_json_files", { relativeDir });
+}
+
+export async function pickOpenJsonFile(): Promise<string | null> {
+  const selected = await open({
+    multiple: false,
+    directory: false,
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
+export async function pickSaveJsonFile(defaultPath: string): Promise<string | null> {
+  const selected = await save({
+    defaultPath,
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
+export async function readExternalJsonFile<T>(filePath: string): Promise<T> {
+  const content = await readTextFile(filePath);
+  return JSON.parse(content) as T;
+}
+
+export async function writeExternalJsonFile(filePath: string, data: unknown): Promise<void> {
+  await writeTextFile(filePath, JSON.stringify(data, null, 2));
 }
