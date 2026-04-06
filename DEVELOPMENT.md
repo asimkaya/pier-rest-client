@@ -1,7 +1,7 @@
 # Pier — Development Status & Architecture
 
-> **Last updated:** 2026-04-05
-> **Version:** 0.1.0 (pre-release, active development)
+> **Last updated:** 2026-04-06
+> **Version:** 1.0.0
 
 ---
 
@@ -507,5 +507,5 @@ These features are described in `prd.md` but not yet built:
 
 
 ### Tags
-git tag v0.1.1
-git push origin v0.1.1
+git tag v1.0.0
+git push origin v1.0.0

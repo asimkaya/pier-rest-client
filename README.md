@@ -25,12 +25,15 @@ A **local-first**, **privacy-first** REST client. No account — collections, en
 
 - **HTTP requests** — Methods, URL, query params, headers, body (JSON, raw, form-data)
 - **Auth** — None, Bearer, Basic, API Key (header or query)
-- **Response** — Pretty JSON with syntax highlighting, raw body, headers; status, timing, size; copy body (pretty or raw)
+- **Request editor** — CodeMirror-powered JSON/raw body editing with syntax highlighting and bracket assistance
+- **Response** — Pretty JSON with syntax highlighting, raw body, headers; status, timing, size; copy body (pretty or raw), inline search with match navigation
 - **Tabs** — Multiple requests at once; inline rename; new tabs become saved standalone requests automatically
 - **Collections** — Folders and requests; context menu; drag standalone requests into collections
 - **Environments** — Variables with `{{name}}` interpolation on URL, headers, body, and auth
 - **History** — Recent requests with quick re-open
-- **Command palette** — `Ctrl+K` for actions and navigation
+- **Import / Export** — Workspace backup JSON export/import for collections, saved requests, and environments
+- **cURL import** — Paste cURL into the URL bar or use the dedicated import modal to build a request instantly
+- **Command palette** — `Ctrl+K` for actions, import/export, and navigation
 - **Themes** — Dark, light, or follow the system
 
 ## Tech stack
